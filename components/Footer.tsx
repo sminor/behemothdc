@@ -36,7 +36,7 @@ const Footer: React.FC<FooterProps> = ({ isAuthenticated = false, onLogout }) =>
             </button>
           )}
         </div>
-        © {new Date().getFullYear()} Jaymar Darts. All rights reserved.
+        © {new Date().getFullYear()} Behemoth Dart Club. All rights reserved.
       </div>
     </footer>
   );

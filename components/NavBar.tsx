@@ -56,8 +56,8 @@ const NavBar: React.FC<NavBarProps> = ({ currentPage, hideButtons = false }) => 
           <Link href="/" className="block">
             <div className="relative h-48 w-48 mx-auto md:h-72 md:w-72 lg:h-96 lg:w-96 xl:h-[30rem] xl:w-[30rem]">
               <Image
-                src="/logo.png"
-                alt="Jaymar Darts official logo"
+                src="/behemoth-logo.jpg"
+                alt="Behemoth Darts Club official logo"
                 fill
                 className="object-contain"
                 priority

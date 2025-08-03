@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Jaymar Darts - Portland, OR",
-  description: "Welcome to Jaymar Darts, offering competitive and recreational dart leagues and events in Portland, Oregon.",
+  title: "Behemoth Darts Club - Portland, OR",
+  description: "Behemoth Darts Club, offering competitive and recreational dart leagues and events in Portland, Oregon.",
   icons: [
     { rel: "icon", url: "/favicon.ico", sizes: "any" },
     { rel: "apple-touch-icon", url: "/apple-touch-icon.png", sizes: "180x180" },

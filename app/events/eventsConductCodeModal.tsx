@@ -7,7 +7,7 @@ const conductCodeInfo: Content[] = [
     title: "Introduction",
     content: (
       <p>
-        At Jaymar Darts, we are committed to fostering a welcoming, inclusive, and enjoyable environment for all players. Our Code of Conduct sets the expectations for behavior, sportsmanship, and respect at all our events.
+        At Behemoth Darts Club, we are committed to fostering a welcoming, inclusive, and enjoyable environment for all players. Our Code of Conduct sets the expectations for behavior, sportsmanship, and respect at all our events.
       </p>
     ),
   },
@@ -56,7 +56,7 @@ const conductCodeInfo: Content[] = [
           Most importantly, remember that we are all here to have fun and enjoy the game of darts. A positive attitude and good sportsmanship help create a great experience for everyone!
         </p>
         <p>
-          By participating in Jaymar Darts events, you agree to abide by this Code of Conduct. We appreciate your cooperation in making our tournaments safe, respectful, and enjoyable for all.
+          By participating in Behemoth Darts Club events, you agree to abide by this Code of Conduct. We appreciate your cooperation in making our tournaments safe, respectful, and enjoyable for all.
         </p>
       </>
     ),

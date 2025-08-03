@@ -118,7 +118,7 @@ const LocationsPage = () => {
         {/* Header */}
         <header className="p-4 text-center">
           <h1 className="text-2xl font-bold text-[var(--card-title)]">Our Locations</h1>
-          <p>With 10 locations around the Portland metro area, JayMar Darts offers convenient spots for you to join the excitement of dart games, leagues, and tournaments. Click on a location to explore more!</p>
+          <p>With 10 locations around the Portland metro area, Behemoth Darts Club offers convenient spots for you to join the excitement of dart games, leagues, and tournaments. Click on a location to explore more!</p>
         </header>
 
         {/* Announcement Section */}

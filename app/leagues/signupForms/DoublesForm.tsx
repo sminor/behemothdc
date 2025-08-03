@@ -499,7 +499,7 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
             <p>This league is ADL, NDA, and NADO sanctioned.</p>
             <p>I understand that I must abide by the <a href="http://actiondartleague.com/AutoRecovery_save_of_ADL_Rules_and_Guidelines-Player_Handbook-NEW-Updated.pdf" target="_blank" rel="noreferrer">league rules</a>, and failure to do so may result in disqualification for the season and future leagues.</p>
             <p>I am aware that this is a 15-week league.</p>
-            <p>If a match needs to be rescheduled or a substitute player must play, it is the team/player's responsibility to contact JayMar for approval as soon as reasonably possible.</p>
+            <p>If a match needs to be rescheduled or a substitute player must play, it is the team/player's responsibility to contact Behemoth Darts Club for approval as soon as reasonably possible.</p>
             <p>It is the team/player's responsibility to find a suitable substitute player.</p>
             <p className="mb-2">NO REFUNDS AFTER SIGN-UPS CLOSE</p>
             <p className="mt-4 mb-0 text-[var(--text-highlight)]"><span className="font-bold">Entire team fees are due at the time of sign-up. Please pay the full amount for both players.</span></p>
