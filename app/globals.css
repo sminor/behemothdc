@@ -1,0 +1,167 @@
+@import "tailwindcss";
+@plugin '@tailwindcss/typography';
+
+@theme {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  /* Base Colors */
+  --color1: #1E1E1E;
+  --color2: #333333;
+  --color3: #3A3A3A;
+  --color4: #F2F2F2;
+  --color5: #CE5B45;
+  --color6: #6FA2C8;
+  --color7: #C68E38;
+  --color8: #666666;
+  --color9: #999999;
+  
+
+  /* Background Colors */
+  --background-main: var(--color1);
+  --background-secondary: var(--color2);
+  --background-navbar: var(--color2);
+  --background-footer: var(--color2);
+
+  /* Text Colors */
+  --text-main: var(--color4);
+  --text-highlight: var(--color7);
+  --text-link: var(--color6);
+
+  /* Button Colors */
+  --button-background: var(--color7);
+  --button-text: var(--color1);
+  --button-background-inverted: var(--color3);
+  --button-text-inverted: var(--color7);
+
+  /* Announcement Colors */
+  --announcement-background: var(--color3);
+  --announcement-text: var(--color4);
+  --announcement-title: var(--color7);
+  --announcement-paused-bg: var(--color3);
+  --announcement-paused-text: var(--color7);
+
+  /* Card Colors */
+  --card-background: var(--color3);
+  --card-text: var(--color4);
+  --card-title: var(--color7);
+  --card-highlight: var(--color7);
+  --card-new: var(--color5);
+  --card-today: var(--color6);
+  --card-special: var(--color5);
+
+  /* Tab Colors */
+  --tab-background-inactive: var(--color2);
+  --tab-background-active: var(--color3);
+  --tab-text: var(--color4);
+  --tab-text-active: var(--color7);
+  
+  /* Card Colors */
+  --card-past-background: var(--color3) ;
+  --card-past-text: var(--color8); ;
+  --card-past-title: var(--color8); ;
+  --card-past-highlight: var(--color8); ;
+  --card-past-badge: var(--color8); ;
+
+  /* Select Box Colors */
+  --select-background: var(--color3);         
+  --select-text: var(--color4);               
+  --select-border: var(--color7);             
+  --select-focus-outline: var(--color4);
+
+  /* Checkbox Colors */
+  --checkbox-checkmark: var(--color7);
+
+  /* Modal Colors */
+  --modal-background: var(--color1);
+  --modal-close-text: var(--color7);
+  --modal-close-background: var(--color2);
+  --modal-scrollbar-color: var(--color3);
+
+  /* Table Colors */
+  --table-odd-row: var(--color1);
+  --table-even-row: var(--color2);
+
+  /* Form Colors */
+  --form-background: var(--color2);
+  --form-text: var(--color4);
+  --form-border: var(--color7);
+  --form-checkbox: var(--color4);
+  --form-checkbox-checked: var(--color7);
+  --form-radio: var(--color4);
+  --form-radio-checked: var(--color7);
+
+  /* Draggable Card Colors */
+  --drag-card-background: var(--color2);
+  --drag-card-text: var(--color4);
+
+}
+
+
+
+body {
+  @apply text-[var(--text-main)] bg-[var(--background-main)];
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.prose {
+  @apply text-[var(--text-main)];
+}
+
+.prose a {
+  @apply text-[var(--text-link)] hover:text-[var(--text-highlight)];
+}
+
+.prose li::marker {
+  @apply text-[var(--text-main)];
+}
+
+.prose strong {
+  @apply text-[var(--text-main)];
+}
+
+.prose hr {
+  @apply border-[var(--text-highlight)];
+}
+
+/* Pagination Container Styles */
+.announcement-swiper .swiper-pagination {
+  position: relative; /* allows top to be used */
+  bottom: -2.5rem; /* this will move the container down */
+}
+
+/* Pagination Bullets Styles */
+.announcement-swiper .swiper-pagination-bullet {
+  background-color: var(--color4); /* Set the color of the pagination dots */
+  opacity: 0.5; /* Set the opacity of the pagination dots */
+}
+
+.announcement-swiper .swiper-pagination-bullet-active {
+  background-color: var(--color7); /* Set the color of the active pagination dot */
+  opacity: 1; /* Set the opacity of the active pagination dot */
+}
+
+/* Custom Scrollbar for WebKit Browsers */
+.scrollbar-custom::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: transparent; 
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background: var(--modal-scrollbar-color);
+  border-radius: 10px;
+}
+
+/* Custom Scrollbar for Non-WebKit Browsers */
+.scrollbar-custom {
+  scrollbar-width: thin;
+  scrollbar-color: var(--modal-scrollbar-color) transparent;
+}
+
+
+

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>JayMar Tournament Helper</title>
+  <style>
+    body { font-family: Arial, Tahoma, Verdana; background-color: #FFFFFF; margin: 0; padding: 0; }
+    div { box-sizing: border-box; }
+    .header { height: 47px; width: 100%; background-color: #000000; color: #FFFFFF; text-align: center; line-height: 47px; font-size: 30px; }
+    .table-container { margin-top: 8px; padding: 10px; background-color: #FFFFFF; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background-color: #000066; color: #FFFFFF; font-weight: bold; padding: 5px; text-align: left; border-bottom: 1px solid #000000; }
+    td { padding: 5px; color: #0000CC; border-bottom: 1px solid #000000; }
+    tr:nth-child(even) { background-color: #EEEEEE; }
+    tr:nth-child(odd) { background-color: #CCCCCC; }
+    .copyable { cursor: pointer; }
+    .copyable.copied { color: #000080; }
+    #footer { text-align: right; padding: 10px; font-size: x-small; color: #000066; background-color: #FFFFFF; }
+  </style>
+</head>
+<body>
+  <div class="header">JayMar Tournament Helper</div>
+  <div class="table-container">
+    <div id="team-info"></div>
+  </div>
+  <div id="footer">© <span id="year"></span> JayMar Entertainment</div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    window.addEventListener('message', (event) => {
+      if (!event.data || event.data.type !== 'updateTournament') return;
+      const teamData = event.data.data;
+
+      if (!teamData || !teamData.teams) {
+        document.getElementById('team-info').innerHTML = 'No team data available.';
+        return;
+      }
+
+      const teamHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 30px;"></th>
+              <th>Team Name</th>
+              <th>Players</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${teamData.teams.map((team, index) => {
+              const players = team.players.map(player => {
+                const [firstName, ...lastNameParts] = player.split(' ');
+                const lastName = lastNameParts.join(' ');
+                return `<span class="copyable" data-name="${firstName}">${firstName}</span> <span class="copyable" data-name="${lastName}">${lastName}</span>`;
+              }).join('<br>');
+              return `
+                <tr>
+                  <td><input type="checkbox" class="toggle-row" data-row="${index}"></td>
+                  <td><span class="copyable" data-name="${team.name}">${team.name}</span></td>
+                  <td>${players}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+
+      document.getElementById('team-info').innerHTML = teamHTML;
+
+      document.querySelectorAll('.copyable').forEach(item => {
+        item.addEventListener('click', () => {
+          const textToCopy = item.getAttribute('data-name');
+          navigator.clipboard.writeText(textToCopy).then(() => {
+            item.classList.add('copied');
+            setTimeout(() => item.classList.remove('copied'), 1000);
+          });
+        });
+      });
+
+      document.querySelectorAll('.toggle-row').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+          const rowIndex = e.target.getAttribute('data-row');
+          const row = document.querySelectorAll('tbody tr')[rowIndex];
+          const spans = row.querySelectorAll('.copyable');
+          spans.forEach(span => {
+            span.style.textDecoration = e.target.checked ? 'line-through' : 'none';
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>
