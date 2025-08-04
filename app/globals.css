@@ -14,7 +14,7 @@
   --color4: #F2F2F2;
   --color5: #CE5B45;
   --color6: #6FA2C8;
-  --color7: #385F4D;
+  --color7: #415E49;
   --color8: #666666;
   --color9: #999999;
   
@@ -32,8 +32,8 @@
 
   /* Button Colors */
   --button-background: var(--color7);
-  --button-text: var(--color1);
-  --button-background-inverted: var(--color3);
+  --button-text: var(--color4);
+  --button-background-inverted: var(--color4);
   --button-text-inverted: var(--color7);
 
   /* Announcement Colors */
@@ -46,7 +46,7 @@
   /* Card Colors */
   --card-background: var(--color3);
   --card-text: var(--color4);
-  --card-title: var(--color7);
+  --card-title: var(--color4);
   --card-highlight: var(--color7);
   --card-new: var(--color5);
   --card-today: var(--color6);
