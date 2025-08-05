@@ -14,7 +14,7 @@ const Footer: React.FC<FooterProps> = ({ isAuthenticated = false, onLogout }) =>
         <div className="flex justify-center space-x-6 mb-2 text-sm">
           {[
             { href: 'mailto:behemothdartsclub@gmail.com', icon: FaEnvelope, label: 'Contact Us' },
-            { href: 'https://www.facebook.com/behemothdartsclub/', icon: FaFacebookSquare, label: 'Facebook' },
+            { href: 'https://www.facebook.com/groups/597239589917492/', icon: FaFacebookSquare, label: 'Facebook' },
           ].map(({ href, icon: Icon, label }, index) => (
             <Link
               key={index}
