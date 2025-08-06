@@ -4,13 +4,14 @@ import { supabase } from '@/utils/supabaseClient';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import Login from '@/components/Login';
-import AdminEvents from './adminEvents'; // assumes file lives next to page.tsx
+import AdminEvents from './adminEvents';
+import AdminAnnouncements from './adminAnnouncements';  
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [permissions, setPermissions] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState('Events');
+  const [activeTab, setActiveTab] = useState('Announcements');
 
   useEffect(() => {
     const checkAuthAndPermissions = async () => {
@@ -85,16 +86,6 @@ export default function AdminPage() {
           <div className="flex rounded-t-lg">
             <button
               className={`px-4 py-2 rounded-t-md mr-1 ${
-                activeTab === 'Events'
-                  ? 'bg-[var(--tab-background-active)] text-[var(--tab-text-active)]'
-                  : 'bg-[var(--tab-background-inactive)] text-[var(--card-text)]'
-              }`}
-              onClick={() => setActiveTab('Events')}
-            >
-              Events
-            </button>
-            <button
-              className={`px-4 py-2 rounded-t-md mr-1 ${
                 activeTab === 'Announcements'
                   ? 'bg-[var(--tab-background-active)] text-[var(--tab-text-active)]'
                   : 'bg-[var(--tab-background-inactive)] text-[var(--card-text)]'
@@ -102,6 +93,16 @@ export default function AdminPage() {
               onClick={() => setActiveTab('Announcements')}
             >
               Announcements
+            </button>            
+            <button
+              className={`px-4 py-2 rounded-t-md mr-1 ${
+                activeTab === 'Events'
+                  ? 'bg-[var(--tab-background-active)] text-[var(--tab-text-active)]'
+                  : 'bg-[var(--tab-background-inactive)] text-[var(--card-text)]'
+              }`}
+              onClick={() => setActiveTab('Events')}
+            >
+              Events
             </button>
             <button
               className={`px-4 py-2 rounded-t-md ${
@@ -117,12 +118,8 @@ export default function AdminPage() {
 
           {/* Tab content area */}
           <div className="p-4 bg-[var(--card-background)] rounded-b-lg rounded-tr-lg border-t-0">
+            {activeTab === 'Announcements' && <AdminAnnouncements />}
             {activeTab === 'Events' && <AdminEvents />}
-            {activeTab === 'Announcements' && (
-              <div>
-                <p>Announcements section coming soon.</p>
-              </div>
-            )}
             {activeTab === 'Locations' && (
               <div>
                 <p>Location management coming soon.</p>
