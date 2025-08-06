@@ -5,7 +5,7 @@ import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import Login from '@/components/Login';
 import AdminEvents from './adminEvents';
-import AdminAnnouncements from './adminAnnouncements';  
+import AdminAnnouncements from './adminAnnouncements';
 import AdminLocations from './adminLocations';
 
 export default function AdminPage() {
@@ -14,12 +14,13 @@ export default function AdminPage() {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('Announcements');
 
-  useEffect(() => {
-    const checkAuthAndPermissions = async () => {
+  const checkAuthAndPermissions = async () => {
+    try {
       const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
+      const authenticated = !!session;
+      setIsAuthenticated(authenticated);
 
-      if (session) {
+      if (authenticated && session) {
         const { data, error } = await supabase
           .from('authorized_users')
           .select('permissions')
@@ -27,13 +28,50 @@ export default function AdminPage() {
           .single();
 
         setPermissions(error || !data ? [] : data.permissions || []);
+      } else {
+        setPermissions([]);
       }
-
+    } catch (err) {
+      console.error('Error checking auth and permissions:', err);
+      setPermissions([]);
+    } finally {
       setIsLoading(false);
-    };
+    }
+  };
 
+  useEffect(() => {
     checkAuthAndPermissions();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const authenticated = !!session;
+      setIsAuthenticated(authenticated);
+      setIsLoading(true);
+
+      if (authenticated && session) {
+        supabase
+          .from('authorized_users')
+          .select('permissions')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data, error }) => {
+            setPermissions(error || !data ? [] : data.permissions || []);
+            setIsLoading(false);
+          });
+      } else {
+        setPermissions([]);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
+
+  const handleLogin = () => {
+    setIsLoading(true);
+    checkAuthAndPermissions(); // Re-check after login
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -55,7 +93,7 @@ export default function AdminPage() {
   }
 
   if (!isAuthenticated) {
-    return <Login onLogin={() => setIsLoading(true)} />;
+    return <Login onLogin={handleLogin} />;
   }
 
   if (!permissions.includes('admin')) {
@@ -65,7 +103,7 @@ export default function AdminPage() {
         <div className="w-full max-w-screen-xl mx-auto px-4 flex-grow flex items-center justify-center">
           <p className="text-red-500">You are not authorized to access the Admin Panel. Contact the admin.</p>
         </div>
-        <Footer isAuthenticated={true} onLogout={handleLogout} />
+        <Footer isAuthenticated={isAuthenticated} onLogout={handleLogout} />
       </div>
     );
   }
@@ -78,7 +116,6 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         </header>
 
-        {/* Tabs (matching tournament-tools style) */}
         <div className="mt-4 mb-8">
           <hr className="border-[var(--text-highlight)]" />
           <div className="mb-4 mt-4 text-center">
@@ -94,7 +131,7 @@ export default function AdminPage() {
               onClick={() => setActiveTab('Announcements')}
             >
               Announcements
-            </button>            
+            </button>
             <button
               className={`px-4 py-2 rounded-t-md mr-1 ${
                 activeTab === 'Events'
@@ -117,7 +154,6 @@ export default function AdminPage() {
             </button>
           </div>
 
-          {/* Tab content area */}
           <div className="p-4 bg-[var(--card-background)] rounded-b-lg rounded-tr-lg border-t-0">
             {activeTab === 'Announcements' && <AdminAnnouncements />}
             {activeTab === 'Events' && <AdminEvents />}
