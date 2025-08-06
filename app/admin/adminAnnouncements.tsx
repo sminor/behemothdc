@@ -224,129 +224,136 @@ export default function AdminAnnouncements() {
       </div>
 
       <div className="space-y-6">
-        {announcements.map((a) => {
-          const id = a.id;
-          const announcement = getEdited(id);
-          const active = announcement.page && announcement.page.length > 0;
-          const preview = showPreviewMap[id] ?? false;
+        {(() => {
+          const newAnnouncements = Object.entries(editedDataMap)
+            .filter(([id]) => id.startsWith('new-'))
+            .map(([id, data]) => ({ ...data, id })) as Announcement[];
+          const allAnnouncements = [...newAnnouncements, ...announcements];
 
-          return (
-            <div
-              key={id}
-              className="bg-[var(--color11)] p-4 rounded-lg border-l-4 border-[var(--card-highlight)] shadow-md"
-            >
-              {!isEditing(id) ? (
-                <div onClick={() => handleEdit(id)} className="cursor-pointer space-y-1">
-                  <h3 className="text-lg font-semibold">{announcement.title}</h3>
-                  <p className="text-sm text-[var(--card-text)]">
-                    {new Date(announcement.created_at ?? '').toLocaleString()} - {announcement.author}
-                  </p>
-                  {active && (
-                    <span
-                      className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded cursor-help"
-                      title={`Visible on: ${announcement.page?.join(', ')}`}
-                    >
-                      Active
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[var(--card-text)] mb-1">Title</label>
-                    <input
-                      type="text"
-                      value={announcement.title}
-                      onChange={(e) => handleChange(id, 'title', e.target.value)}
-                      className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                    />
-                  </div>
+          return allAnnouncements.map((a) => {
+            const id = a.id;
+            const announcement = getEdited(id);
+            const active = announcement.page && announcement.page.length > 0;
+            const preview = showPreviewMap[id] ?? false;
 
-                  <div>
-                    <label className="block text-[var(--card-text)] mb-1">Content</label>
-                    {preview ? (
-                      <div
-                        className="prose prose-invert max-w-none p-4 bg-[var(--form-background)] rounded-md border border-[var(--form-border)]"
-                        dangerouslySetInnerHTML={{ __html: announcement.content || '' }}
-                      />
-                    ) : (
-                      <textarea
-                        value={announcement.content}
-                        onChange={(e) => handleChange(id, 'content', e.target.value)}
-                        className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none resize-none overflow-hidden"
-                        ref={(el) => {
-                          if (el) {
-                            el.style.height = 'auto';
-                            el.style.height = `${el.scrollHeight}px`;
-                          }
-                        }}
-                        onInput={(e) => {
-                          const target = e.target as HTMLTextAreaElement;
-                          target.style.height = 'auto';
-                          target.style.height = `${target.scrollHeight}px`;
-                        }}
-                      />
+            return (
+              <div
+                key={id}
+                className="bg-[var(--color11)] p-4 rounded-lg border-l-4 border-[var(--card-highlight)] shadow-md"
+              >
+                {!isEditing(id) ? (
+                  <div onClick={() => handleEdit(id)} className="cursor-pointer space-y-1">
+                    <h3 className="text-lg font-semibold">{announcement.title}</h3>
+                    <p className="text-sm text-[var(--card-text)]">
+                      {new Date(announcement.created_at ?? '').toLocaleString()} - {announcement.author}
+                    </p>
+                    {active && (
+                      <span
+                        className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded cursor-help"
+                        title={`Visible on: ${announcement.page?.join(', ')}`}
+                      >
+                        Active
+                      </span>
                     )}
                   </div>
-
-                  <div>
-                    <label className="block text-[var(--card-text)] mb-1">Display On Pages</label>
-                    <div className="flex flex-wrap gap-4">
-                      {availablePages.map((page) => (
-                        <label key={page} className="flex items-center gap-2 text-[var(--card-text)]">
-                          <input
-                            type="checkbox"
-                            checked={announcement.page?.includes(page) || false}
-                            onChange={() => handlePageToggle(id, page)}
-                            className="h-5 w-5 border border-[var(--form-border)] rounded accent-[var(--form-checkbox-checked)] focus:outline-none"
-                          />
-                          {page.charAt(0).toUpperCase() + page.slice(1)}
-                        </label>
-                      ))}
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[var(--card-text)] mb-1">Title</label>
+                      <input
+                        type="text"
+                        value={announcement.title}
+                        onChange={(e) => handleChange(id, 'title', e.target.value)}
+                        className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
+                      />
                     </div>
-                  </div>
 
-                  <div className="flex justify-end gap-2 flex-wrap mt-2">
-                    <Button
-                      className="w-auto px-4 py-2 text-sm"
-                      onClick={() => setShowPreviewMap((prev) => ({ ...prev, [id]: !preview }))}
-                      icon={preview ? <FaEyeSlash /> : <FaEye />}
-                      iconPosition="left"
-                    >
-                      {preview ? 'Hide Preview' : 'Preview'}
-                    </Button>
-                    <Button
-                      className="w-auto px-4 py-2 text-sm"
-                      onClick={() => handleSave(id)}
-                      icon={<FaSave />}
-                      iconPosition="left"
-                    >
-                      Save
-                    </Button>
-                    <Button
-                      className="w-auto px-4 py-2 text-sm"
-                      onClick={() => handleCancel(id)}
-                      icon={<FaTimes />}
-                      iconPosition="left"
-                    >
-                      Cancel
-                    </Button>
-                    {!id.startsWith('new-') && (
+                    <div>
+                      <label className="block text-[var(--card-text)] mb-1">Content</label>
+                      {preview ? (
+                        <div
+                          className="prose prose-invert max-w-none p-4 bg-[var(--form-background)] rounded-md border border-[var(--form-border)]"
+                          dangerouslySetInnerHTML={{ __html: announcement.content || '' }}
+                        />
+                      ) : (
+                        <textarea
+                          value={announcement.content}
+                          onChange={(e) => handleChange(id, 'content', e.target.value)}
+                          className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none resize-none overflow-hidden"
+                          ref={(el) => {
+                            if (el) {
+                              el.style.height = 'auto';
+                              el.style.height = `${el.scrollHeight}px`;
+                            }
+                          }}
+                          onInput={(e) => {
+                            const target = e.target as HTMLTextAreaElement;
+                            target.style.height = 'auto';
+                            target.style.height = `${target.scrollHeight}px`;
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-[var(--card-text)] mb-1">Display On Pages</label>
+                      <div className="flex flex-wrap gap-4">
+                        {availablePages.map((page) => (
+                          <label key={page} className="flex items-center gap-2 text-[var(--card-text)]">
+                            <input
+                              type="checkbox"
+                              checked={announcement.page?.includes(page) || false}
+                              onChange={() => handlePageToggle(id, page)}
+                              className="h-5 w-5 border border-[var(--form-border)] rounded accent-[var(--form-checkbox-checked)] focus:outline-none"
+                            />
+                            {page.charAt(0).toUpperCase() + page.slice(1)}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 flex-wrap mt-2">
                       <Button
-                        className="w-auto px-4 py-2 text-sm bg-[var(--color5)] text-white"
-                        onClick={() => handleDelete(id)}
-                        icon={<FaTrash />}
+                        className="w-auto px-4 py-2 text-sm"
+                        onClick={() => setShowPreviewMap((prev) => ({ ...prev, [id]: !preview }))}
+                        icon={preview ? <FaEyeSlash /> : <FaEye />}
                         iconPosition="left"
                       >
-                        Delete
+                        {preview ? 'Hide Preview' : 'Preview'}
                       </Button>
-                    )}
+                      <Button
+                        className="w-auto px-4 py-2 text-sm"
+                        onClick={() => handleSave(id)}
+                        icon={<FaSave />}
+                        iconPosition="left"
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        className="w-auto px-4 py-2 text-sm"
+                        onClick={() => handleCancel(id)}
+                        icon={<FaTimes />}
+                        iconPosition="left"
+                      >
+                        Cancel
+                      </Button>
+                      {!id.startsWith('new-') && (
+                        <Button
+                          className="w-auto px-4 py-2 text-sm bg-[var(--color5)] text-white"
+                          onClick={() => handleDelete(id)}
+                          icon={<FaTrash />}
+                          iconPosition="left"
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+                )}
+              </div>
+            );
+          });
+        })()}
       </div>
     </section>
   );

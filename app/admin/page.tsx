@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import Login from '@/components/Login';
 import AdminEvents from './adminEvents';
 import AdminAnnouncements from './adminAnnouncements';  
+import AdminLocations from './adminLocations';
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -120,11 +121,7 @@ export default function AdminPage() {
           <div className="p-4 bg-[var(--card-background)] rounded-b-lg rounded-tr-lg border-t-0">
             {activeTab === 'Announcements' && <AdminAnnouncements />}
             {activeTab === 'Events' && <AdminEvents />}
-            {activeTab === 'Locations' && (
-              <div>
-                <p>Location management coming soon.</p>
-              </div>
-            )}
+            {activeTab === 'Locations' && <AdminLocations />}
           </div>
         </div>
       </div>
