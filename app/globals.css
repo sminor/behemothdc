@@ -17,6 +17,9 @@
   --color7: #415E49;
   --color8: #666666;
   --color9: #999999;
+  --color10: #6D9B7A;
+  --color11: #3F3F3F;
+  --color12: #4D4D4D;
   
 
   /* Background Colors */
@@ -27,7 +30,7 @@
 
   /* Text Colors */
   --text-main: var(--color4);
-  --text-highlight: var(--color7);
+  --text-highlight: var(--color10);
   --text-link: var(--color6);
 
   /* Button Colors */
@@ -39,24 +42,24 @@
   /* Announcement Colors */
   --announcement-background: var(--color3);
   --announcement-text: var(--color4);
-  --announcement-title: var(--color7);
+  --announcement-title: var(--color10);
   --announcement-paused-bg: var(--color3);
   --announcement-paused-text: var(--color7);
 
   /* Card Colors */
   --card-background: var(--color3);
   --card-text: var(--color4);
-  --card-title: var(--color4);
-  --card-highlight: var(--color7);
+  --card-title: var(--color10);
+  --card-highlight: var(--color10);
   --card-new: var(--color5);
   --card-today: var(--color6);
-  --card-special: var(--color5);
+  --card-special: var(--color7);
 
   /* Tab Colors */
   --tab-background-inactive: var(--color2);
   --tab-background-active: var(--color3);
   --tab-text: var(--color4);
-  --tab-text-active: var(--color7);
+  --tab-text-active: var(--color10);
   
   /* Card Colors */
   --card-past-background: var(--color3) ;
@@ -99,7 +102,12 @@
 
 }
 
-
+@layer base {
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+}
 
 body {
   @apply text-[var(--text-main)] bg-[var(--background-main)];

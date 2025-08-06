@@ -15,6 +15,10 @@ const eslintConfig = [
     files: ['**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx'],
     rules: {
       'react/no-unescaped-entities': ['error', { forbid: ['>', '<'] }],
+      '@typescript-eslint/no-unused-vars': ['error', {
+        varsIgnorePattern: '^_',
+        argsIgnorePattern: '^_',
+      }],
     },
   },
 ];
