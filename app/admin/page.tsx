@@ -7,6 +7,7 @@ import Login from '@/components/Login';
 import AdminEvents from './adminEvents';
 import AdminAnnouncements from './adminAnnouncements';
 import AdminLocations from './adminLocations';
+import AdminLeagues from './adminLeagues';
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -143,7 +144,7 @@ export default function AdminPage() {
               Events
             </button>
             <button
-              className={`px-4 py-2 rounded-t-md ${
+              className={`px-4 py-2 rounded-t-md mr-1 ${
                 activeTab === 'Locations'
                   ? 'bg-[var(--tab-background-active)] text-[var(--tab-text-active)]'
                   : 'bg-[var(--tab-background-inactive)] text-[var(--card-text)]'
@@ -152,12 +153,24 @@ export default function AdminPage() {
             >
               Locations
             </button>
+            <button
+              className={`px-4 py-2 rounded-t-md mr-1 ${
+                activeTab === 'Leagues'
+                  ? 'bg-[var(--tab-background-active)] text-[var(--tab-text-active)]'
+                  : 'bg-[var(--tab-background-inactive)] text-[var(--card-text)]'
+              }`}
+              onClick={() => setActiveTab('Leagues')}
+            >
+              Leagues
+            </button>
           </div>
 
           <div className="p-4 bg-[var(--card-background)] rounded-b-lg rounded-tr-lg border-t-0">
             {activeTab === 'Announcements' && <AdminAnnouncements />}
             {activeTab === 'Events' && <AdminEvents />}
             {activeTab === 'Locations' && <AdminLocations />}
+            {activeTab === 'Leagues' && <AdminLeagues />}
+            
           </div>
         </div>
       </div>
