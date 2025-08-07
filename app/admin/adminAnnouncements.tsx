@@ -1,8 +1,15 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/utils/supabaseClient';
-import Button from '@/components/Button';
-import { FaPlus, FaTrash, FaSave, FaTimes, FaEye, FaEyeSlash } from 'react-icons/fa';
+"use client";
+import { useEffect, useState } from "react";
+import { supabase } from "@/utils/supabaseClient";
+import Button from "@/components/Button";
+import {
+  FaPlus,
+  FaTrash,
+  FaSave,
+  FaTimes,
+  FaEye,
+  FaEyeSlash,
+} from "react-icons/fa";
 
 type Announcement = {
   id: string;
@@ -13,14 +20,18 @@ type Announcement = {
   page?: string[];
 };
 
-const availablePages = ['home', 'events', 'leagues', 'locations', 'stats'];
+const availablePages = ["home", "events", "leagues", "locations", "stats"];
 
 export default function AdminAnnouncements() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [editingIds, setEditingIds] = useState<Set<string>>(new Set());
-  const [editedDataMap, setEditedDataMap] = useState<Record<string, Partial<Announcement>>>({});
-  const [showPreviewMap, setShowPreviewMap] = useState<Record<string, boolean>>({});
-  const [authorName, setAuthorName] = useState<string>('');
+  const [editedDataMap, setEditedDataMap] = useState<
+    Record<string, Partial<Announcement>>
+  >({});
+  const [showPreviewMap, setShowPreviewMap] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [authorName, setAuthorName] = useState<string>("");
 
   useEffect(() => {
     const fetchUserAndName = async () => {
@@ -29,9 +40,9 @@ export default function AdminAnnouncements() {
 
       if (userId) {
         const { data: userInfo, error } = await supabase
-          .from('authorized_users')
-          .select('name')
-          .eq('id', userId)
+          .from("authorized_users")
+          .select("name")
+          .eq("id", userId)
           .single();
 
         if (!error && userInfo?.name) setAuthorName(userInfo.name);
@@ -40,15 +51,15 @@ export default function AdminAnnouncements() {
 
     const fetchAnnouncements = async () => {
       const { data, error } = await supabase
-        .from('announcements')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("announcements")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-      if (error) console.error('Error loading announcements:', error.message);
+      if (error) console.error("Error loading announcements:", error.message);
       else {
         const transformed = (data || []).map((a) => ({
           ...a,
-          page: a.page ? a.page.split(',').map((s: string) => s.trim()) : [],
+          page: a.page ? a.page.split(",").map((s: string) => s.trim()) : [],
         }));
         setAnnouncements(transformed);
       }
@@ -65,7 +76,11 @@ export default function AdminAnnouncements() {
     setShowPreviewMap((prev) => ({ ...prev, [id]: false }));
   };
 
-  const handleChange = (id: string, field: keyof Announcement, value: string | string[]) => {
+  const handleChange = (
+    id: string,
+    field: keyof Announcement,
+    value: string | string[]
+  ) => {
     setEditedDataMap((prev) => ({
       ...prev,
       [id]: {
@@ -91,7 +106,7 @@ export default function AdminAnnouncements() {
   const handleSave = async (id: string) => {
     const edited = editedDataMap[id];
     if (!edited.title || !edited.content) {
-      alert('Title and content are required.');
+      alert("Title and content are required.");
       return;
     }
 
@@ -99,37 +114,39 @@ export default function AdminAnnouncements() {
       ...edited,
       author: authorName,
       created_at: new Date().toISOString(),
-      page: (edited.page || []).join(','),
+      page: (edited.page || []).join(","),
     };
 
-    if (id.startsWith('new-')) {
+    if (id.startsWith("new-")) {
       const { id: _, ...insertData } = updatedData;
-      const { error } = await supabase.from('announcements').insert([insertData]);
+      const { error } = await supabase
+        .from("announcements")
+        .insert([insertData]);
       if (error) {
-        console.error('Insert error:', error.message);
+        console.error("Insert error:", error.message);
         return;
       }
     } else {
       const { error } = await supabase
-        .from('announcements')
+        .from("announcements")
         .update(updatedData)
-        .eq('id', id);
+        .eq("id", id);
       if (error) {
-        console.error('Update error:', error.message);
+        console.error("Update error:", error.message);
         return;
       }
     }
 
     const { data: refreshed, error: fetchError } = await supabase
-      .from('announcements')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("announcements")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-    if (fetchError) console.error('Refresh error:', fetchError.message);
+    if (fetchError) console.error("Refresh error:", fetchError.message);
     else {
       const transformed = (refreshed || []).map((a) => ({
         ...a,
-        page: a.page ? a.page.split(',').map((s: string) => s.trim()) : [],
+        page: a.page ? a.page.split(",").map((s: string) => s.trim()) : [],
       }));
       setAnnouncements(transformed);
     }
@@ -170,11 +187,14 @@ export default function AdminAnnouncements() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this announcement?')) return;
+    if (!confirm("Are you sure you want to delete this announcement?")) return;
 
-    const { error } = await supabase.from('announcements').delete().eq('id', id);
+    const { error } = await supabase
+      .from("announcements")
+      .delete()
+      .eq("id", id);
     if (error) {
-      console.error('Delete error:', error.message);
+      console.error("Delete error:", error.message);
       return;
     }
 
@@ -201,8 +221,8 @@ export default function AdminAnnouncements() {
       ...prev,
       [newId]: {
         id: newId,
-        title: '',
-        content: '',
+        title: "",
+        content: "",
         author: authorName,
         page: [],
       },
@@ -218,7 +238,12 @@ export default function AdminAnnouncements() {
     <section className="p-4">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
         <h2 className="text-xl font-semibold">Manage Announcements</h2>
-        <Button className="w-auto" onClick={handleAddNew} icon={<FaPlus />} iconPosition="left">
+        <Button
+          className="w-auto"
+          onClick={handleAddNew}
+          icon={<FaPlus />}
+          iconPosition="left"
+        >
           Add New Announcement
         </Button>
       </div>
@@ -226,7 +251,7 @@ export default function AdminAnnouncements() {
       <div className="space-y-6">
         {(() => {
           const newAnnouncements = Object.entries(editedDataMap)
-            .filter(([id]) => id.startsWith('new-'))
+            .filter(([id]) => id.startsWith("new-"))
             .map(([id, data]) => ({ ...data, id })) as Announcement[];
           const allAnnouncements = [...newAnnouncements, ...announcements];
 
@@ -242,15 +267,21 @@ export default function AdminAnnouncements() {
                 className="bg-[var(--color11)] p-4 rounded-lg border-l-4 border-[var(--card-highlight)] shadow-md"
               >
                 {!isEditing(id) ? (
-                  <div onClick={() => handleEdit(id)} className="cursor-pointer space-y-1">
-                    <h3 className="text-lg font-semibold">{announcement.title}</h3>
+                  <div
+                    onClick={() => handleEdit(id)}
+                    className="cursor-pointer space-y-1"
+                  >
+                    <h3 className="text-lg font-semibold">
+                      {announcement.title}
+                    </h3>
                     <p className="text-sm text-[var(--card-text)]">
-                      {new Date(announcement.created_at ?? '').toLocaleString()} - {announcement.author}
+                      {new Date(announcement.created_at ?? "").toLocaleString()}{" "}
+                      - {announcement.author}
                     </p>
                     {active && (
                       <span
                         className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded cursor-help"
-                        title={`Visible on: ${announcement.page?.join(', ')}`}
+                        title={`Visible on: ${announcement.page?.join(", ")}`}
                       >
                         Active
                       </span>
@@ -259,36 +290,46 @@ export default function AdminAnnouncements() {
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-[var(--card-text)] mb-1">Title</label>
+                      <label className="block text-[var(--card-text)] mb-1">
+                        Title
+                      </label>
                       <input
                         type="text"
                         value={announcement.title}
-                        onChange={(e) => handleChange(id, 'title', e.target.value)}
+                        onChange={(e) =>
+                          handleChange(id, "title", e.target.value)
+                        }
                         className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[var(--card-text)] mb-1">Content</label>
+                      <label className="block text-[var(--card-text)] mb-1">
+                        Content
+                      </label>
                       {preview ? (
                         <div
                           className="prose prose-invert max-w-none p-4 bg-[var(--form-background)] rounded-md border border-[var(--form-border)]"
-                          dangerouslySetInnerHTML={{ __html: announcement.content || '' }}
+                          dangerouslySetInnerHTML={{
+                            __html: announcement.content || "",
+                          }}
                         />
                       ) : (
                         <textarea
                           value={announcement.content}
-                          onChange={(e) => handleChange(id, 'content', e.target.value)}
+                          onChange={(e) =>
+                            handleChange(id, "content", e.target.value)
+                          }
                           className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none resize-none overflow-hidden"
                           ref={(el) => {
                             if (el) {
-                              el.style.height = 'auto';
+                              el.style.height = "auto";
                               el.style.height = `${el.scrollHeight}px`;
                             }
                           }}
                           onInput={(e) => {
                             const target = e.target as HTMLTextAreaElement;
-                            target.style.height = 'auto';
+                            target.style.height = "auto";
                             target.style.height = `${target.scrollHeight}px`;
                           }}
                         />
@@ -296,13 +337,20 @@ export default function AdminAnnouncements() {
                     </div>
 
                     <div>
-                      <label className="block text-[var(--card-text)] mb-1">Display On Pages</label>
+                      <label className="block text-[var(--card-text)] mb-1">
+                        Display On Pages
+                      </label>
                       <div className="flex flex-wrap gap-4">
                         {availablePages.map((page) => (
-                          <label key={page} className="flex items-center gap-2 text-[var(--card-text)]">
+                          <label
+                            key={page}
+                            className="flex items-center gap-2 text-[var(--card-text)]"
+                          >
                             <input
                               type="checkbox"
-                              checked={announcement.page?.includes(page) || false}
+                              checked={
+                                announcement.page?.includes(page) || false
+                              }
                               onChange={() => handlePageToggle(id, page)}
                               className="h-5 w-5 border border-[var(--form-border)] rounded accent-[var(--form-checkbox-checked)] focus:outline-none"
                             />
@@ -315,11 +363,16 @@ export default function AdminAnnouncements() {
                     <div className="flex justify-end gap-2 flex-wrap mt-2">
                       <Button
                         className="w-auto px-4 py-2 text-sm"
-                        onClick={() => setShowPreviewMap((prev) => ({ ...prev, [id]: !preview }))}
+                        onClick={() =>
+                          setShowPreviewMap((prev) => ({
+                            ...prev,
+                            [id]: !preview,
+                          }))
+                        }
                         icon={preview ? <FaEyeSlash /> : <FaEye />}
                         iconPosition="left"
                       >
-                        {preview ? 'Hide Preview' : 'Preview'}
+                        {preview ? "Hide Preview" : "Preview"}
                       </Button>
                       <Button
                         className="w-auto px-4 py-2 text-sm"
@@ -337,7 +390,7 @@ export default function AdminAnnouncements() {
                       >
                         Cancel
                       </Button>
-                      {!id.startsWith('new-') && (
+                      {!id.startsWith("new-") && (
                         <Button
                           className="w-auto px-4 py-2 text-sm bg-[var(--color5)] text-white"
                           onClick={() => handleDelete(id)}
