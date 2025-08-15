@@ -172,8 +172,8 @@ const SinglesForm: React.FC<SinglesFormProps> = ({ signup, leagueDetails, onSubm
       const encodedPlayerName = encodeURIComponent(`League Signup: ${formData.player_name}`);
       const paymentUrl =
         formData.payment_method === 'Venmo'
-          ? `https://venmo.com/jay-phillips-36?txn=pay&amount=${formData.total_fees_due.toFixed(2)}&note=${encodedPlayerName}`
-          : `https://paypal.me/jayphillips1528/${formData.total_fees_due.toFixed(2)}?currencyCode=USD&note=${encodedPlayerName}`;
+          ? `https://venmo.com/behemothdc?txn=pay&amount=${formData.total_fees_due.toFixed(2)}&note=${encodedPlayerName}`
+          : `https://paypal.me/behemothdc/${formData.total_fees_due.toFixed(2)}?currencyCode=USD&note=${encodedPlayerName}`;
       window.open(paymentUrl, '_blank');
     }, 3000);
   };
@@ -192,8 +192,8 @@ const SinglesForm: React.FC<SinglesFormProps> = ({ signup, leagueDetails, onSubm
             <a
               href={
                 formData.payment_method === 'Venmo'
-                  ? `https://venmo.com/jay-phillips-36?txn=pay&amount=${formData.total_fees_due.toFixed(2)}&note=${encodeURIComponent(`League Signup: ${formData.player_name}`)}`
-                  : `https://paypal.me/jayphillips1528/${formData.total_fees_due.toFixed(2)}?currencyCode=USD&note=${encodeURIComponent(`League Signup: ${formData.player_name}`)}`
+                  ? `https://venmo.com/behemothdc?txn=pay&amount=${formData.total_fees_due.toFixed(2)}&note=${encodeURIComponent(`League Signup: ${formData.player_name}`)}`
+                  : `https://paypal.me/behemothdc/${formData.total_fees_due.toFixed(2)}?currencyCode=USD&note=${encodeURIComponent(`League Signup: ${formData.player_name}`)}`
               }
               target="_blank"
               rel="noopener noreferrer"
