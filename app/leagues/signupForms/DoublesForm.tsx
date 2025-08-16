@@ -42,7 +42,7 @@ interface DoublesFormData {
   teammate_email: string;
   teammate_phone_number: string;
   teammate_paid_nda: boolean;
-  league_name: string;
+  league_details_id: string; // store FK instead of a denormalized name
   home_location_1: string;
   home_location_2: string;
   play_preference: string;
@@ -71,7 +71,7 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
     teammate_email: '',
     teammate_phone_number: '',
     teammate_paid_nda: false,
-    league_name: '',
+    league_details_id: '',
     home_location_1: '',
     home_location_2: '',
     play_preference: 'Either',
@@ -89,16 +89,18 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const formatTime12h = (t?: string | null) => {
-    if (!t) return "";
-    // handles "HH:MM" and "HH:MM:SS"
+    if (!t) return '';
     const m = t.match(/^(\d{1,2}):(\d{2})/);
-    if (!m) return t ?? "";
+    if (!m) return t ?? '';
     let h = Number(m[1]);
     const minutes = m[2];
-    const ampm = h >= 12 ? "PM" : "AM";
+    const ampm = h >= 12 ? 'PM' : 'AM';
     h = h % 12 || 12;
     return `${h}:${minutes} ${ampm}`;
   };
+
+  const labelForLeague = (l: LeagueDetails) =>
+    `${l.name} - ${l.cap_details} ${l.day_of_week} ${formatTime12h(l.start_time)}`;
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -113,33 +115,26 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
     fetchLocations();
   }, []);
 
+  // Recalculate fees whenever league or NDA flags change
   useEffect(() => {
-    const calculateFees = (
-      leagueName: string,
-      captainPaidNDA: boolean,
-      teammatePaidNDA: boolean
-    ): number => {
-      const league = leagueDetails.find((l) => l.name === leagueName);
-      if (!league) return 0;
+    const selected =
+      leagueDetails.find((l) => l.id === formData.league_details_id) || null;
 
-      const { cost_per_player, sanction_fee } = league;
-      const captainCost = cost_per_player + (captainPaidNDA ? 0 : sanction_fee);
-      const teammateCost = cost_per_player + (teammatePaidNDA ? 0 : sanction_fee);
-
-      return captainCost + teammateCost;
-    };
-
-    if (!formData.league_name) {
+    if (!selected) {
       setFormData((prev) => ({ ...prev, total_fees_due: 0 }));
       return;
     }
-    const totalFees = calculateFees(
-      formData.league_name,
-      formData.captain_paid_nda,
-      formData.teammate_paid_nda
-    );
-    setFormData((prev) => ({ ...prev, total_fees_due: totalFees }));
-  }, [formData.league_name, formData.captain_paid_nda, formData.teammate_paid_nda, leagueDetails]);
+
+    const { cost_per_player, sanction_fee } = selected;
+    const captainCost = cost_per_player + (formData.captain_paid_nda ? 0 : sanction_fee);
+    const teammateCost = cost_per_player + (formData.teammate_paid_nda ? 0 : sanction_fee);
+    setFormData((prev) => ({ ...prev, total_fees_due: captainCost + teammateCost }));
+  }, [
+    formData.league_details_id,
+    formData.captain_paid_nda,
+    formData.teammate_paid_nda,
+    leagueDetails
+  ]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value, type, checked, name } = e.target as HTMLInputElement;
@@ -175,7 +170,18 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
     setSubmissionError(null);
     setIsSubmitting(true);
 
-    if (captainEmailError || teammateEmailError || !isValidPhoneNumber(formData.captain_phone_number) || !isValidPhoneNumber(formData.teammate_phone_number)) {
+    if (!formData.league_details_id) {
+      setSubmissionError('Please select a league.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (
+      captainEmailError ||
+      teammateEmailError ||
+      !isValidPhoneNumber(formData.captain_phone_number) ||
+      !isValidPhoneNumber(formData.teammate_phone_number)
+    ) {
       setSubmissionError('Please correct any email or phone number errors.');
       setIsSubmitting(false);
       return;
@@ -190,7 +196,7 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
     }
 
     setIsSubmitted(true);
-    if (onSubmitSuccess) onSubmitSuccess();
+    onSubmitSuccess?.();
 
     setTimeout(() => {
       const encodedTeamName = encodeURIComponent(`League Signup: ${formData.team_name}`);
@@ -202,8 +208,12 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
     }, 3000);
   };
 
+  // compute once for render
+  const selectedLeague =
+    leagueDetails.find((l) => l.id === formData.league_details_id) || null;
+
   return (
-    <div className="flex justify-center"> {/* Reapplied centering */}
+    <div className="flex justify-center">
       {isSubmitted ? (
         <div className="space-y-4 w-full md:max-w-2xl text-center">
           <h3 className="text-[var(--text-highlight)]">Signup Submitted Successfully!</h3>
@@ -234,14 +244,7 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
               fill="none"
               viewBox="0 0 24 24"
             >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path
                 className="opacity-75"
                 fill="currentColor"
@@ -387,18 +390,18 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
 
           <h3 className="font-bold">League Selection</h3>
           <div>
-            <label htmlFor="league_name" className="block text-sm font-medium">What league are you playing in?</label>
+            <label htmlFor="league_details_id" className="block text-sm font-medium">What league are you playing in?</label>
             <select
-              id="league_name"
-              value={formData.league_name}
+              id="league_details_id"
+              value={formData.league_details_id}
               onChange={handleInputChange}
               required
               className="mt-1 p-2 w-full border-2 border-[var(--select-border)] rounded-md bg-[var(--select-background)] text-[var(--select-text)] focus:outline-none"
             >
               <option value="">Select a league</option>
               {leagueDetails.map((league) => (
-                <option key={league.id} value={league.name}>
-                  {league.name} - {league.cap_details} {league.day_of_week} {formatTime12h(league.start_time)}
+                <option key={league.id} value={league.id}>
+                  {labelForLeague(league)}
                 </option>
               ))}
             </select>
@@ -488,17 +491,17 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
 
           <div className="mb-6 p-4 bg-[var(--card-background)] rounded-md text-sm">
             <p>I understand that I will have to pay upon completion of this form.</p>
-            {formData.league_name && (
+            {selectedLeague && (
               <>
                 <p className="mt-2">Sign Up Fees:</p>
                 <ul className="list-disc list-inside">
-                  <li>Captain League Fee: <strong>${leagueDetails.find((l) => l.name === formData.league_name)?.cost_per_player.toFixed(2) || '0.00'}</strong></li>
-                  <li>Teammate League Fee: <strong>${leagueDetails.find((l) => l.name === formData.league_name)?.cost_per_player.toFixed(2) || '0.00'}</strong></li>
+                  <li>Captain League Fee: <strong>${selectedLeague.cost_per_player.toFixed(2)}</strong></li>
+                  <li>Teammate League Fee: <strong>${selectedLeague.cost_per_player.toFixed(2)}</strong></li>
                   {!formData.captain_paid_nda && (
-                    <li>Captain NDA Sanctioning Fee: <strong>${leagueDetails.find((l) => l.name === formData.league_name)?.sanction_fee.toFixed(2) || '0.00'}</strong></li>
+                    <li>Captain NDA Sanctioning Fee: <strong>${selectedLeague.sanction_fee.toFixed(2)}</strong></li>
                   )}
                   {!formData.teammate_paid_nda && (
-                    <li>Teammate NDA Sanctioning Fee: <strong>${leagueDetails.find((l) => l.name === formData.league_name)?.sanction_fee.toFixed(2) || '0.00'}</strong></li>
+                    <li>Teammate NDA Sanctioning Fee: <strong>${selectedLeague.sanction_fee.toFixed(2)}</strong></li>
                   )}
                 </ul>
                 <p className="mt-2">Fees Due:</p>
@@ -509,12 +512,29 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
             )}
             <hr />
             <p>This league is ADL, NDA, and NADO sanctioned.</p>
-            <p>I understand that I must abide by the <a href="http://actiondartleague.com/AutoRecovery_save_of_ADL_Rules_and_Guidelines-Player_Handbook-NEW-Updated.pdf" target="_blank" rel="noreferrer">league rules</a>, and failure to do so may result in disqualification for the season and future leagues.</p>
+            <p>
+              I understand that I must abide by the{' '}
+              <a
+                href="http://actiondartleague.com/AutoRecovery_save_of_ADL_Rules_and_Guidelines-Player_Handbook-NEW-Updated.pdf"
+                target="_blank"
+                rel="noreferrer"
+              >
+                league rules
+              </a>
+              , and failure to do so may result in disqualification for the season and future leagues.
+            </p>
             <p>I am aware that this is a 15-week league.</p>
-            <p>If a match needs to be rescheduled or a substitute player must play, it is the team/player's responsibility to contact Behemoth Darts Club for approval as soon as reasonably possible.</p>
+            <p>
+              If a match needs to be rescheduled or a substitute player must play, it is the team/player's
+              responsibility to contact Behemoth Darts Club for approval as soon as reasonably possible.
+            </p>
             <p>It is the team/player's responsibility to find a suitable substitute player.</p>
             <p className="mb-2">NO REFUNDS AFTER SIGN-UPS CLOSE</p>
-            <p className="mt-4 mb-0 text-[var(--text-highlight)]"><span className="font-bold">Entire team fees are due at the time of sign-up. Please pay the full amount for both players.</span></p>
+            <p className="mt-4 mb-0 text-[var(--text-highlight)]">
+              <span className="font-bold">
+                Entire team fees are due at the time of sign-up. Please pay the full amount for both players.
+              </span>
+            </p>
           </div>
 
           <div className="flex items-center">

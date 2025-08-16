@@ -6,6 +6,14 @@ import Modal from "@/components/Modal";
 import Button from "@/components/Button";
 import { FaDownload, FaSync, FaTrash } from "react-icons/fa";
 
+type LeagueDetailsLite = {
+  id: string;
+  name: string;
+  cap_details: string;
+  day_of_week: string;
+  start_time: string | null;
+};
+
 type Signup = {
   id: string;
   team_name: string;
@@ -19,7 +27,11 @@ type Signup = {
   teammate_email: string | null;
   teammate_phone_number: string | null;
   teammate_paid_nda: boolean | null;
-  league_name: string; // used as "Division" in UI
+
+  // normalized
+  league_details_id: string;
+  league_details?: LeagueDetailsLite | null;
+
   home_location_1: string;
   home_location_2: string;
   play_preference: string;
@@ -55,13 +67,35 @@ export default function AdminLeagueSignups({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, leagueId]);
 
+  function formatTime12h(t?: string | null) {
+    if (!t) return "";
+    const m = t.match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return t ?? "";
+    let h = Number(m[1]);
+    const minutes = m[2];
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return `${h}:${minutes} ${ampm}`;
+  }
+
   async function refresh() {
     setLoading(true);
     setError(null);
     try {
       const { data, error } = await supabase
         .from("league_signups")
-        .select("*")
+        .select(
+          `
+          *,
+          league_details:league_details_id (
+            id,
+            name,
+            cap_details,
+            day_of_week,
+            start_time
+          )
+        `
+        )
         .eq("signup_settings_id", leagueId)
         .order("created_at", { ascending: false });
 
@@ -77,12 +111,21 @@ export default function AdminLeagueSignups({
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+
+    // Inline helper so React doesn't warn about missing deps
+    const divisionLabel = (ld?: LeagueDetailsLite | null) => {
+      if (!ld) return "(unknown)";
+      // collapsed should show "name - day_of_week start_time"
+      return `${ld.name} - ${ld.day_of_week} ${formatTime12h(ld.start_time)}`.trim();
+    };
+
     return rows.filter((r) => {
       if (showOnlyUnconfirmed && r.confirmed_paid) return false;
       if (!q) return true;
+      const div = divisionLabel(r.league_details);
       const blob = [
         r.team_name,
-        r.league_name,
+        div,
         r.captain_name,
         r.captain_email,
         r.captain_phone_number,
@@ -127,11 +170,12 @@ export default function AdminLeagueSignups({
 
   function toCSV() {
     const rowsOut = filtered;
+    // Keep CSV human-friendly: include division label, not FK
     const header = [
       "id",
       "created_at",
       "team_name",
-      "league_name",
+      "division",
       "captain_name",
       "captain_adl_number",
       "captain_email",
@@ -161,12 +205,18 @@ export default function AdminLeagueSignups({
 
     const lines = [
       header.join(","),
-      ...rowsOut.map((r) =>
-        [
+      ...rowsOut.map((r) => {
+        const division =
+          r.league_details
+            ? `${r.league_details.name} - ${r.league_details.day_of_week} ${formatTime12h(
+                r.league_details.start_time
+              )}`
+            : "(unknown)";
+        return [
           r.id,
           r.created_at,
           r.team_name,
-          r.league_name,
+          division,
           r.captain_name,
           r.captain_adl_number,
           r.captain_email,
@@ -185,8 +235,8 @@ export default function AdminLeagueSignups({
           r.confirmed_paid,
         ]
           .map(esc)
-          .join(",")
-      ),
+          .join(",");
+      }),
     ].join("\n");
 
     const blob = new Blob([lines], { type: "text/csv;charset=utf-8" });
@@ -210,9 +260,8 @@ export default function AdminLeagueSignups({
         <div className="space-y-4">
           {/* Controls */}
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            {/* Left: search + checkbox (match AdminEvents styles) */}
+            {/* Left: search + checkbox */}
             <div className="w-full md:w-auto">
-              {/* Search bar */}
               <div className="mb-2 w-full max-w-[400px]">
                 <input
                   type="text"
@@ -223,7 +272,6 @@ export default function AdminLeagueSignups({
                 />
               </div>
 
-              {/* Checkbox under search */}
               <div className="flex items-center gap-2 text-[var(--card-text)]">
                 <input
                   id="showOnlyUnconfirmed"
@@ -274,6 +322,12 @@ export default function AdminLeagueSignups({
                 <tbody>
                   {filtered.map((r) => {
                     const isOpenRow = !!expandedIds[r.id];
+                    const division =
+                      r.league_details
+                        ? `${r.league_details.name} - ${r.league_details.day_of_week} ${formatTime12h(
+                            r.league_details.start_time
+                          )}`
+                        : "(unknown)";
                     return (
                       <React.Fragment key={r.id}>
                         {/* Summary row (click to expand) */}
@@ -284,7 +338,7 @@ export default function AdminLeagueSignups({
                           }
                         >
                           <td className="py-2 pr-4">{r.team_name}</td>
-                          <td className="py-2 pr-4">{r.league_name}</td>
+                          <td className="py-2 pr-4">{division}</td>
                           <td className="py-2 pr-4">{r.captain_name}</td>
                           <td className="py-2 pr-4">{r.teammate_name ?? ""}</td>
                           <td
@@ -342,7 +396,7 @@ export default function AdminLeagueSignups({
                               </div>
                               <div className="my-4 h-[1px] w-full bg-[var(--color2)] rounded" />
 
-                              {/* Other details */}
+                              {/* Other details (no division FK or signup id here) */}
                               <div className="mb-2">
                                 <div className="grid md:grid-cols-4 gap-4">
                                   <Detail label="Home Location 1" value={r.home_location_1} />
@@ -360,7 +414,6 @@ export default function AdminLeagueSignups({
                                     }
                                   />
                                   <Detail label="Payment Method" value={r.payment_method} />
-                                  <Detail label="Signup ID" value={r.id} />
                                   <Detail
                                     label="Created Date/Time"
                                     value={new Date(r.created_at).toLocaleString()}
