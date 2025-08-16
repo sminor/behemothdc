@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/utils/supabaseClient";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
@@ -13,24 +13,37 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [permissions, setPermissions] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState("Announcements");
+  const [activeTab, setActiveTab] = useState<"Announcements" | "Events" | "Locations" | "Leagues">(
+    "Announcements"
+  );
 
-  const checkAuthAndPermissions = async () => {
+  // Helper to load permissions safely (fixes PromiseLike<void>.catch TS error)
+  const loadPermissions = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("authorized_users")
+        .select("permissions")
+        .eq("id", userId)
+        .single();
+
+      setPermissions(error || !data ? [] : data.permissions || []);
+    } catch {
+      setPermissions([]);
+    }
+  }, []);
+
+  // Initial auth + permissions check
+  const checkAuthAndPermissions = useCallback(async () => {
     try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
+
       const authenticated = !!session;
       setIsAuthenticated(authenticated);
 
-      if (authenticated && session) {
-        const { data, error } = await supabase
-          .from("authorized_users")
-          .select("permissions")
-          .eq("id", session.user.id)
-          .single();
-
-        setPermissions(error || !data ? [] : data.permissions || []);
+      if (authenticated && session?.user?.id) {
+        await loadPermissions(session.user.id);
       } else {
         setPermissions([]);
       }
@@ -40,38 +53,37 @@ export default function AdminPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [loadPermissions]);
 
   useEffect(() => {
     checkAuthAndPermissions();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        const authenticated = !!session;
-        setIsAuthenticated(authenticated);
-        setIsLoading(true);
-
-        if (authenticated && session) {
-          supabase
-            .from("authorized_users")
-            .select("permissions")
-            .eq("id", session.user.id)
-            .single()
-            .then(({ data, error }) => {
-              setPermissions(error || !data ? [] : data.permissions || []);
-              setIsLoading(false);
-            });
-        } else {
-          setPermissions([]);
-          setIsLoading(false);
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      switch (event) {
+        case "SIGNED_IN": {
+          setIsAuthenticated(!!session);
+          if (session?.user?.id) {
+            void loadPermissions(session.user.id);
+          } else {
+            setPermissions([]);
+          }
+          break;
         }
+        case "SIGNED_OUT": {
+          setIsAuthenticated(false);
+          setPermissions([]);
+          break;
+        }
+        // Ignore TOKEN_REFRESHED / USER_UPDATED to avoid needless unmounts
+        default:
+          break;
       }
-    );
+    });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [checkAuthAndPermissions, loadPermissions]);
 
   const handleLogin = () => {
     setIsLoading(true);
@@ -128,6 +140,7 @@ export default function AdminPage() {
           <div className="mb-4 mt-4 text-center">
             <h2 className="text-xl font-semibold text-[var(--text-highlight)]"></h2>
           </div>
+
           <div className="flex rounded-t-lg">
             <button
               className={`px-4 py-2 rounded-t-md mr-1 ${
@@ -171,11 +184,20 @@ export default function AdminPage() {
             </button>
           </div>
 
+          {/* Keep children mounted; just hide inactive ones so expanded sections persist across tab focus/blur */}
           <div className="p-4 bg-[var(--card-background)] rounded-b-lg rounded-tr-lg border-t-0">
-            {activeTab === "Announcements" && <AdminAnnouncements />}
-            {activeTab === "Events" && <AdminEvents />}
-            {activeTab === "Locations" && <AdminLocations />}
-            {activeTab === "Leagues" && <AdminLeagues />}
+            <div className={activeTab === "Announcements" ? "block" : "hidden"}>
+              <AdminAnnouncements />
+            </div>
+            <div className={activeTab === "Events" ? "block" : "hidden"}>
+              <AdminEvents />
+            </div>
+            <div className={activeTab === "Locations" ? "block" : "hidden"}>
+              <AdminLocations />
+            </div>
+            <div className={activeTab === "Leagues" ? "block" : "hidden"}>
+              <AdminLeagues />
+            </div>
           </div>
         </div>
       </div>
