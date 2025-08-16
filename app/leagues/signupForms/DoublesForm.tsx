@@ -88,6 +88,18 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const formatTime12h = (t?: string | null) => {
+    if (!t) return "";
+    // handles "HH:MM" and "HH:MM:SS"
+    const m = t.match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return t ?? "";
+    let h = Number(m[1]);
+    const minutes = m[2];
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return `${h}:${minutes} ${ampm}`;
+  };
+
   useEffect(() => {
     const fetchLocations = async () => {
       const { data, error } = await supabase
@@ -386,7 +398,7 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
               <option value="">Select a league</option>
               {leagueDetails.map((league) => (
                 <option key={league.id} value={league.name}>
-                  {league.name} - {league.cap_details} {league.day_of_week} {league.start_time}
+                  {league.name} - {league.cap_details} {league.day_of_week} {formatTime12h(league.start_time)}
                 </option>
               ))}
             </select>
