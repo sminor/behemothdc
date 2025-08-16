@@ -1,10 +1,13 @@
 "use client";
+
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/utils/supabaseClient";
 import Button from "@/components/Button";
 import { FaPlus, FaTrash, FaSave, FaTimes } from "react-icons/fa";
+import AdminDivisions from "./adminDivisions";
+import AdminLeagueSignups from "./adminLeagueSignups";
 
-type LeagueSignupSetting = {
+export type LeagueSignupSetting = {
   id: string;
   name: string;
   signup_start: string;
@@ -13,7 +16,7 @@ type LeagueSignupSetting = {
   form_type: string;
 };
 
-type Division = {
+export type Division = {
   id: string;
   name: string;
   cap_details: string;
@@ -24,9 +27,9 @@ type Division = {
   signup_settings_id: string;
 };
 
-type Flight = {
+export type Flight = {
   id: string;
-  league_id: string;
+  league_id: string; // division id
   flight_name: string;
   schedule_url?: string;
   standings_url?: string;
@@ -39,34 +42,51 @@ export default function AdminLeagues() {
   const [divisions, setDivisions] = useState<Record<string, Division[]>>({});
   const [flights, setFlights] = useState<Record<string, Flight[]>>({});
   const [editingLeagueId, setEditingLeagueId] = useState<string | null>(null);
-  const [editedSettingsMap, setEditedSettingsMap] = useState<
-    Record<string, LeagueSignupSetting>
-  >({});
-  const [editedDivisionsMap, setEditedDivisionsMap] = useState<
-    Record<string, Division>
-  >({});
-  const [editedFlightsMap, setEditedFlightsMap] = useState<
-    Record<string, Flight>
-  >({});
-  const [selectedDivision, setSelectedDivision] = useState<
-    Record<string, string>
-  >({});
-  const [selectedFlight, setSelectedFlight] = useState<Record<string, string>>(
+
+  const [editedSettingsMap, setEditedSettingsMap] = useState<Record<string, LeagueSignupSetting>>(
     {}
   );
+  const [editedDivisionsMap, setEditedDivisionsMap] = useState<Record<string, Division>>({});
+  const [editedFlightsMap, setEditedFlightsMap] = useState<Record<string, Flight>>({});
+
+  const [selectedDivision, setSelectedDivision] = useState<Record<string, string>>({});
+  const [selectedFlight, setSelectedFlight] = useState<Record<string, string>>({});
+
+  // Signups modal
+  const [openSignupsLeagueId, setOpenSignupsLeagueId] = useState<string | null>(null);
+  const [openSignupsLeagueName, setOpenSignupsLeagueName] = useState<string | undefined>(undefined);
 
   const leagueInfoRef = useRef<HTMLTextAreaElement | null>(null);
+  const MAX_INFO_LINES = 30;
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  // Auto-size league info but cap "automatic" growth to ~30 lines
   useEffect(() => {
-    if (leagueInfoRef.current) {
-      leagueInfoRef.current.style.height = "auto";
-      leagueInfoRef.current.style.height = `${leagueInfoRef.current.scrollHeight}px`;
+    autoSizeLeagueInfo();
+  }, [editedSettingsMap, editingLeagueId]);
+
+  const autoSizeLeagueInfo = () => {
+    const el = leagueInfoRef.current;
+    if (!el) return;
+    const computed = getComputedStyle(el);
+    const lh = parseFloat(computed.lineHeight || "20");
+    const maxPx = Math.round(lh * MAX_INFO_LINES);
+
+    // If user manually resized bigger than our cap, don't override.
+    const current = parseFloat(el.style.height || "0");
+    if (current > maxPx) {
+      el.style.overflowY = "auto";
+      return;
     }
-  }, [editedSettingsMap]);
+
+    el.style.height = "auto";
+    const desired = Math.min(el.scrollHeight, maxPx);
+    el.style.height = `${desired}px`;
+    el.style.overflowY = el.scrollHeight > maxPx ? "auto" : "hidden";
+  };
 
   const fetchData = async () => {
     const [
@@ -85,7 +105,7 @@ export default function AdminLeagues() {
     setSettings(settingsData || []);
 
     const divMap: Record<string, Division[]> = {};
-    (divisionsData || []).forEach((div) => {
+    (divisionsData || []).forEach((div: Division) => {
       if (!divMap[div.signup_settings_id]) divMap[div.signup_settings_id] = [];
       divMap[div.signup_settings_id].push({
         ...div,
@@ -98,7 +118,7 @@ export default function AdminLeagues() {
     setDivisions(divMap);
 
     const flightMap: Record<string, Flight[]> = {};
-    (flightsData || []).forEach((flight) => {
+    (flightsData || []).forEach((flight: Flight) => {
       if (!flightMap[flight.league_id]) flightMap[flight.league_id] = [];
       flightMap[flight.league_id].push(flight);
     });
@@ -120,6 +140,8 @@ export default function AdminLeagues() {
     if (setting) {
       setEditedSettingsMap((prev) => ({ ...prev, [id]: { ...setting } }));
     }
+    // ensure textarea resizes on next paint
+    setTimeout(autoSizeLeagueInfo, 0);
   };
 
   const handleSettingChange = (
@@ -145,6 +167,7 @@ export default function AdminLeagues() {
     setSettings((prev) => [newLeague, ...prev]);
     setEditingLeagueId(newId);
     setEditedSettingsMap((prev) => ({ ...prev, [newId]: newLeague }));
+    setTimeout(autoSizeLeagueInfo, 0);
   };
 
   const handleCancelSetting = (id: string) => {
@@ -157,12 +180,7 @@ export default function AdminLeagues() {
 
   const handleSaveSetting = async (id: string) => {
     const data = editedSettingsMap[id];
-    if (
-      !data?.name ||
-      !data.signup_start ||
-      !data.signup_close ||
-      !data.form_type
-    ) {
+    if (!data?.name || !data.signup_start || !data.signup_close || !data.form_type) {
       alert("Please fill out all required fields.");
       return;
     }
@@ -182,6 +200,7 @@ export default function AdminLeagues() {
     await fetchData();
     setEditingLeagueId(null);
   };
+
   // Division handlers
   const handleDivisionChange = (
     id: string,
@@ -217,9 +236,7 @@ export default function AdminLeagues() {
     if (id.startsWith("new-")) {
       setDivisions((prev) => {
         const updated = { ...prev };
-        updated[leagueId] = (updated[leagueId] || []).filter(
-          (d) => d.id !== id
-        );
+        updated[leagueId] = (updated[leagueId] || []).filter((d) => d.id !== id);
         return updated;
       });
     }
@@ -228,12 +245,7 @@ export default function AdminLeagues() {
 
   const handleSaveDivision = async (id: string) => {
     const data = editedDivisionsMap[id];
-    if (
-      !data?.name ||
-      !data.cap_details ||
-      !data.day_of_week ||
-      !data.start_time
-    ) {
+    if (!data?.name || !data.cap_details || !data.day_of_week || !data.start_time) {
       alert("Please fill out all required fields.");
       return;
     }
@@ -284,9 +296,7 @@ export default function AdminLeagues() {
     if (id.startsWith("new-")) {
       setFlights((prev) => {
         const updated = { ...prev };
-        updated[divisionId] = (updated[divisionId] || []).filter(
-          (f) => f.id !== id
-        );
+        updated[divisionId] = (updated[divisionId] || []).filter((f) => f.id !== id);
         return updated;
       });
     }
@@ -316,17 +326,11 @@ export default function AdminLeagues() {
     setSelectedFlight((prev) => ({ ...prev, [divisionId]: "" }));
   };
 
-  // JSX
   return (
     <section className="p-4">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
         <h2 className="text-xl font-semibold">Manage Leagues</h2>
-        <Button
-          className="w-auto"
-          onClick={handleAddNewSetting}
-          icon={<FaPlus />}
-          iconPosition="left"
-        >
+        <Button className="w-auto" onClick={handleAddNewSetting} icon={<FaPlus />} iconPosition="left">
           Add New League
         </Button>
       </div>
@@ -343,19 +347,33 @@ export default function AdminLeagues() {
               className="bg-[var(--color11)] p-4 rounded-lg shadow-md border-l-4 border-[var(--card-highlight)]"
             >
               {!isEditing ? (
-                <div
-                  onClick={() => handleSettingEdit(id)}
-                  className="cursor-pointer space-y-1"
-                >
-                  <h3 className="text-lg font-semibold">{setting.name}</h3>
-                  <p className="text-sm text-[var(--card-text)]">
-                    {setting.signup_start} → {setting.signup_close}
-                  </p>
-                  {isActive(setting.signup_start!, setting.signup_close!) && (
-                    <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">
-                      Active
-                    </span>
-                  )}
+                // Collapsed view: info on LEFT (click to edit), "View Signups" button on RIGHT
+                <div className="flex items-start gap-4">
+                  <div
+                    onClick={() => handleSettingEdit(id)}
+                    className="cursor-pointer space-y-1 flex-1"
+                  >
+                    <h3 className="text-lg font-semibold">{setting.name}</h3>
+                    <p className="text-sm text-[var(--card-text)]">
+                      {setting.signup_start} → {setting.signup_close}
+                    </p>
+                    {isActive(setting.signup_start!, setting.signup_close!) && (
+                      <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">
+                        Signups Active
+                      </span>
+                    )}
+                  </div>
+                  <div className="shrink-0">
+                    <Button
+                      className="w-auto px-3 py-1 text-sm"
+                      onClick={() => {
+                        setOpenSignupsLeagueId(id);
+                        setOpenSignupsLeagueName(setting.name);
+                      }}
+                    >
+                      View Signups
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -364,478 +382,141 @@ export default function AdminLeagues() {
                       <h4 className="text-lg font-semibold mb-2">League</h4>
                     </div>
                     <div>
-                      <label className="block text-sm text-[var(--card-text)] mb-1">
-                        League Name
-                      </label>
+                      <label className="block text-sm text-[var(--card-text)] mb-1">League Name</label>
                       <input
                         type="text"
                         value={setting.name}
-                        onChange={(e) =>
-                          handleSettingChange(id, "name", e.target.value)
-                        }
+                        onChange={(e) => handleSettingChange(id, "name", e.target.value)}
                         className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-[var(--card-text)] mb-1">
-                        Form Type
-                      </label>
+                      <label className="block text-sm text-[var(--card-text)] mb-1">Form Type</label>
                       <select
                         value={setting.form_type}
-                        onChange={(e) =>
-                          handleSettingChange(id, "form_type", e.target.value)
-                        }
+                        onChange={(e) => handleSettingChange(id, "form_type", e.target.value)}
                         className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
                       >
                         <option value="">Select a form</option>
-                        <option value="SinglesForm">SinglesForm</option>
-                        <option value="DoublesForm">DoublesForm</option>
+                        <option value="SinglesForm">Singles Form</option>
+                        <option value="DoublesForm">Doubles Form</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm text-[var(--card-text)] mb-1">
-                        Signup Start
-                      </label>
+                      <label className="block text-sm text-[var(--card-text)] mb-1">Signup Start</label>
                       <input
                         type="date"
                         value={setting.signup_start}
-                        onChange={(e) =>
-                          handleSettingChange(
-                            id,
-                            "signup_start",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => handleSettingChange(id, "signup_start", e.target.value)}
                         className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-[var(--card-text)] mb-1">
-                        Signup Close
-                      </label>
+                      <label className="block text-sm text-[var(--card-text)] mb-1">Signup Close</label>
                       <input
                         type="date"
                         value={setting.signup_close}
-                        onChange={(e) =>
-                          handleSettingChange(
-                            id,
-                            "signup_close",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => handleSettingChange(id, "signup_close", e.target.value)}
                         className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm text-[var(--card-text)] mb-1">
-                        League Info
-                      </label>
+                      <label className="block text-sm text-[var(--card-text)] mb-1">League Info</label>
                       <textarea
                         ref={leagueInfoRef}
                         value={setting.league_info || ""}
                         onChange={(e) => {
-                          handleSettingChange(
-                            id,
-                            "league_info",
-                            e.target.value
-                          );
-                          e.target.style.height = "auto";
-                          e.target.style.height = `${e.target.scrollHeight}px`;
+                          handleSettingChange(id, "league_info", e.target.value);
+                          autoSizeLeagueInfo();
                         }}
-                        style={{ overflow: "hidden" }}
+                        style={{ overflowY: "hidden", resize: "vertical" as const }}
                         className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
                       />
                     </div>
                   </div>
-                  <div className="flex justify-end gap-2 flex-wrap mt-2">
-                    <Button
-                      className="w-auto px-4 py-2 text-sm"
-                      onClick={() => handleSaveSetting(id)}
-                      icon={<FaSave />}
-                      iconPosition="left"
-                    >
-                      Save
-                    </Button>
-                    <Button
-                      className="w-auto px-4 py-2 text-sm"
-                      onClick={() => handleCancelSetting(id)}
-                      icon={<FaTimes />}
-                      iconPosition="left"
-                    >
-                      Cancel
-                    </Button>
-                    {!id.startsWith("new-") && (
+
+                  {/* Actions row: View Signups on LEFT, others on RIGHT */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap mt-2">
+                    <div className="order-1">
                       <Button
-                        className="w-auto px-4 py-2 text-sm bg-[var(--color5)] text-white"
-                        onClick={() => handleDeleteSetting(id)}
-                        icon={<FaTrash />}
+                        className="w-auto px-3 py-1 text-sm"
+                        onClick={() => {
+                          setOpenSignupsLeagueId(id);
+                          setOpenSignupsLeagueName(setting.name);
+                        }}
+                      >
+                        View Signups
+                      </Button>
+                    </div>
+                    <div className="flex gap-2 order-2 ml-auto">
+                      <Button
+                        className="w-auto px-4 py-2 text-sm"
+                        onClick={() => handleSaveSetting(id)}
+                        icon={<FaSave />}
                         iconPosition="left"
                       >
-                        Delete
+                        Save
                       </Button>
-                    )}
+                      <Button
+                        className="w-auto px-4 py-2 text-sm"
+                        onClick={() => handleCancelSetting(id)}
+                        icon={<FaTimes />}
+                        iconPosition="left"
+                      >
+                        Cancel
+                      </Button>
+                      {!id.startsWith("new-") && (
+                        <Button
+                          className="w-auto px-4 py-2 text-sm bg-[var(--color5)] text-white"
+                          onClick={() => handleDeleteSetting(id)}
+                          icon={<FaTrash />}
+                          iconPosition="left"
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Divisions */}
-                  <div className="mt-6">
-                    <div className="h-px bg-[var(--card-highlight)] my-4"></div>
-                    <div className="flex justify-between items-center mb-2">
-                      <h4 className="text-lg font-semibold">Divisions</h4>
-                      <Button
-                        className="w-auto px-3 py-1 text-sm"
-                        onClick={() => handleAddNewDivision(id)}
-                        icon={<FaPlus />}
-                        iconPosition="left"
-                      >
-                        Add Division
-                      </Button>
-                    </div>
-                    <select
-                      value={selectedDivision[id] || ""}
-                      onChange={(e) =>
-                        setSelectedDivision((prev) => ({
-                          ...prev,
-                          [id]: e.target.value,
-                        }))
-                      }
-                      className="w-full md:w-[calc(50%-0.5rem)] p-2 mb-4 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                    >
-                      <option value="">Select a division</option>
-                      {(divisions[id] || []).map((div) => (
-                        <option key={div.id} value={div.id}>
-                          {div.name || "(No Name)"}
-                        </option>
-                      ))}
-                    </select>
-
-                    {selectedDivision[id] &&
-                      (() => {
-                        const div = (divisions[id] || []).find(
-                          (d) => d.id === selectedDivision[id]
-                        );
-                        if (!div) return null;
-                        const division = editedDivisionsMap[div.id] || div;
-                        return (
-                          <div className="bg-[var(--color11)] rounded-md">
-                            <div className="grid md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm text-[var(--card-text)] mb-1">
-                                  Division Name
-                                </label>
-                                <input
-                                  type="text"
-                                  value={division.name}
-                                  onChange={(e) =>
-                                    handleDivisionChange(
-                                      div.id,
-                                      "name",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm text-[var(--card-text)] mb-1">
-                                  Cap Details
-                                </label>
-                                <input
-                                  type="text"
-                                  value={division.cap_details}
-                                  onChange={(e) =>
-                                    handleDivisionChange(
-                                      div.id,
-                                      "cap_details",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm text-[var(--card-text)] mb-1">
-                                  Day of Week
-                                </label>
-                                <select
-                                  value={division.day_of_week}
-                                  onChange={(e) =>
-                                    handleDivisionChange(
-                                      div.id,
-                                      "day_of_week",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                                >
-                                  <option value="">Select a day</option>
-                                  <option value="Sunday">Sunday</option>
-                                  <option value="Monday">Monday</option>
-                                  <option value="Tuesday">Tuesday</option>
-                                  <option value="Wednesday">Wednesday</option>
-                                  <option value="Thursday">Thursday</option>
-                                  <option value="Friday">Friday</option>
-                                  <option value="Saturday">Saturday</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label className="block text-sm text-[var(--card-text)] mb-1">
-                                  Start Time
-                                </label>
-                                <input
-                                  type="time"
-                                  value={division.start_time}
-                                  onChange={(e) =>
-                                    handleDivisionChange(
-                                      div.id,
-                                      "start_time",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm text-[var(--card-text)] mb-1">
-                                  Cost Per Player
-                                </label>
-                                <input
-                                  type="number"
-                                  value={division.cost_per_player}
-                                  onChange={(e) =>
-                                    handleDivisionChange(
-                                      div.id,
-                                      "cost_per_player",
-                                      parseFloat(e.target.value)
-                                    )
-                                  }
-                                  className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm text-[var(--card-text)] mb-1">
-                                  Sanction Fee
-                                </label>
-                                <input
-                                  type="number"
-                                  value={division.sanction_fee}
-                                  onChange={(e) =>
-                                    handleDivisionChange(
-                                      div.id,
-                                      "sanction_fee",
-                                      parseFloat(e.target.value)
-                                    )
-                                  }
-                                  className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                                />
-                              </div>
-                            </div>
-                            <div className="flex justify-end gap-2 flex-wrap mt-2">
-                              <Button
-                                className="w-auto px-4 py-2 text-sm"
-                                onClick={() => handleSaveDivision(div.id)}
-                                icon={<FaSave />}
-                                iconPosition="left"
-                              >
-                                Save
-                              </Button>
-                              <Button
-                                className="w-auto px-4 py-2 text-sm"
-                                onClick={() => handleCancelDivision(div.id, id)}
-                                icon={<FaTimes />}
-                                iconPosition="left"
-                              >
-                                Cancel
-                              </Button>
-                              {!div.id.startsWith("new-") && (
-                                <Button
-                                  className="w-auto px-4 py-2 text-sm bg-[var(--color5)] text-white"
-                                  onClick={() =>
-                                    handleDeleteDivision(div.id, id)
-                                  }
-                                  icon={<FaTrash />}
-                                  iconPosition="left"
-                                >
-                                  Delete
-                                </Button>
-                              )}
-                            </div>
-
-                            {/* Flights */}
-                            <div className="mt-6">
-                              <div className="h-px bg-[var(--card-highlight)] my-4"></div>
-                              <div className="flex justify-between items-center mb-2">
-                                <h4 className="text-lg font-semibold">
-                                  Flights
-                                </h4>
-                                <Button
-                                  className="w-auto px-3 py-1 text-sm"
-                                  onClick={() => handleAddNewFlight(div.id)}
-                                  icon={<FaPlus />}
-                                  iconPosition="left"
-                                >
-                                  Add Flight
-                                </Button>
-                              </div>
-                              <select
-                                value={selectedFlight[div.id] || ""}
-                                onChange={(e) =>
-                                  setSelectedFlight((prev) => ({
-                                    ...prev,
-                                    [div.id]: e.target.value,
-                                  }))
-                                }
-                                className="w-full md:w-[calc(50%-0.5rem)] p-2 mb-4 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                              >
-                                <option value="">Select a flight</option>
-                                {(flights[div.id] || []).map((flight) => (
-                                  <option key={flight.id} value={flight.id}>
-                                    {flight.flight_name || "(No Name)"}
-                                  </option>
-                                ))}
-                              </select>
-
-                              {selectedFlight[div.id] &&
-                                (() => {
-                                  const f = (flights[div.id] || []).find(
-                                    (fl) => fl.id === selectedFlight[div.id]
-                                  );
-                                  if (!f) return null;
-                                  const flight = editedFlightsMap[f.id] || f;
-                                  return (
-                                    <div className="bg-[var(--color11)] rounded-md">
-                                      <div className="grid md:grid-cols-2 gap-4">
-                                        <div>
-                                          <label className="block text-sm text-[var(--card-text)] mb-1">
-                                            Flight Name
-                                          </label>
-                                          <input
-                                            type="text"
-                                            value={flight.flight_name}
-                                            onChange={(e) =>
-                                              handleFlightChange(
-                                                f.id,
-                                                "flight_name",
-                                                e.target.value
-                                              )
-                                            }
-                                            className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                                          />
-                                        </div>
-                                        <div>
-                                          <label className="block text-sm text-[var(--card-text)] mb-1">
-                                            League Type
-                                          </label>
-                                          <input
-                                            type="text"
-                                            value={flight.league_type}
-                                            onChange={(e) =>
-                                              handleFlightChange(
-                                                f.id,
-                                                "league_type",
-                                                e.target.value
-                                              )
-                                            }
-                                            className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                                          />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                          <label className="block text-sm text-[var(--card-text)] mb-1">
-                                            Schedule URL
-                                          </label>
-                                          <input
-                                            type="text"
-                                            value={flight.schedule_url || ""}
-                                            onChange={(e) =>
-                                              handleFlightChange(
-                                                f.id,
-                                                "schedule_url",
-                                                e.target.value
-                                              )
-                                            }
-                                            className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                                          />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                          <label className="block text-sm text-[var(--card-text)] mb-1">
-                                            Standings URL
-                                          </label>
-                                          <input
-                                            type="text"
-                                            value={flight.standings_url || ""}
-                                            onChange={(e) =>
-                                              handleFlightChange(
-                                                f.id,
-                                                "standings_url",
-                                                e.target.value
-                                              )
-                                            }
-                                            className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                                          />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                          <label className="block text-sm text-[var(--card-text)] mb-1">
-                                            Players URL
-                                          </label>
-                                          <input
-                                            type="text"
-                                            value={flight.players_url || ""}
-                                            onChange={(e) =>
-                                              handleFlightChange(
-                                                f.id,
-                                                "players_url",
-                                                e.target.value
-                                              )
-                                            }
-                                            className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
-                                          />
-                                        </div>
-                                      </div>
-                                      <div className="flex justify-end gap-2 flex-wrap mt-2">
-                                        <Button
-                                          className="w-auto px-4 py-2 text-sm"
-                                          onClick={() => handleSaveFlight(f.id)}
-                                          icon={<FaSave />}
-                                          iconPosition="left"
-                                        >
-                                          Save
-                                        </Button>
-                                        <Button
-                                          className="w-auto px-4 py-2 text-sm"
-                                          onClick={() =>
-                                            handleCancelFlight(f.id, div.id)
-                                          }
-                                          icon={<FaTimes />}
-                                          iconPosition="left"
-                                        >
-                                          Cancel
-                                        </Button>
-                                        {!f.id.startsWith("new-") && (
-                                          <Button
-                                            className="w-auto px-4 py-2 text-sm bg-[var(--color5)] text-white"
-                                            onClick={() =>
-                                              handleDeleteFlight(f.id, div.id)
-                                            }
-                                            icon={<FaTrash />}
-                                            iconPosition="left"
-                                          >
-                                            Delete
-                                          </Button>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                  </div>
+                  <AdminDivisions
+                    leagueId={id}
+                    divisionsForLeague={divisions[id] || []}
+                    selectedDivisionId={selectedDivision[id] || ""}
+                    editedDivisionsMap={editedDivisionsMap}
+                    setSelectedDivision={(val) =>
+                      setSelectedDivision((prev) => ({ ...prev, [id]: val }))
+                    }
+                    handleDivisionChange={handleDivisionChange}
+                    handleAddNewDivision={handleAddNewDivision}
+                    handleCancelDivision={handleCancelDivision}
+                    handleSaveDivision={handleSaveDivision}
+                    handleDeleteDivision={handleDeleteDivision}
+                    // flight props
+                    flightsMap={flights}
+                    selectedFlightMap={selectedFlight}
+                    editedFlightsMap={editedFlightsMap}
+                    setSelectedFlight={setSelectedFlight}
+                    handleFlightChange={handleFlightChange}
+                    handleAddNewFlight={handleAddNewFlight}
+                    handleCancelFlight={handleCancelFlight}
+                    handleSaveFlight={handleSaveFlight}
+                    handleDeleteFlight={handleDeleteFlight}
+                  />
                 </>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* Signups Modal */}
+      <AdminLeagueSignups
+        isOpen={!!openSignupsLeagueId}
+        leagueId={openSignupsLeagueId ?? ""}
+        leagueName={openSignupsLeagueName}
+        onClose={() => setOpenSignupsLeagueId(null)}
+      />
     </section>
   );
 }
