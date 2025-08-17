@@ -28,7 +28,6 @@ type Signup = {
   teammate_phone_number: string | null;
   teammate_paid_nda: boolean | null;
 
-  // normalized
   league_details_id: string;
   league_details?: LeagueDetailsLite | null;
 
@@ -59,6 +58,9 @@ export default function AdminLeagueSignups({
   const [search, setSearch] = useState("");
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [showOnlyUnconfirmed, setShowOnlyUnconfirmed] = useState(false);
+
+  // Column widths (Team, Division, Captain, Teammate, Confirmed)
+  const COLS = ["28%", "28%", "16%", "16%", "12%"];
 
   useEffect(() => {
     if (!isOpen || !leagueId) return;
@@ -111,14 +113,10 @@ export default function AdminLeagueSignups({
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-
-    // Inline helper so React doesn't warn about missing deps
     const divisionLabel = (ld?: LeagueDetailsLite | null) => {
       if (!ld) return "(unknown)";
-      // collapsed should show "name - day_of_week start_time"
       return `${ld.name} - ${ld.day_of_week} ${formatTime12h(ld.start_time)}`.trim();
     };
-
     return rows.filter((r) => {
       if (showOnlyUnconfirmed && r.confirmed_paid) return false;
       if (!q) return true;
@@ -144,7 +142,6 @@ export default function AdminLeagueSignups({
     });
   }, [rows, search, showOnlyUnconfirmed]);
 
-  // Toggle confirmed_paid with optimistic UI (and don't toggle row)
   async function togglePaid(id: string, current: boolean) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, confirmed_paid: !current } : r)));
     const { error } = await supabase
@@ -170,7 +167,6 @@ export default function AdminLeagueSignups({
 
   function toCSV() {
     const rowsOut = filtered;
-    // Keep CSV human-friendly: include division label, not FK
     const header = [
       "id",
       "created_at",
@@ -309,16 +305,25 @@ export default function AdminLeagueSignups({
           {/* Table */}
           {!loading && !error && filtered.length > 0 && (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
+              <table className="min-w-full text-sm table-fixed text-left">
+                <colgroup>
+                  <col style={{ width: COLS[0] }} />
+                  <col style={{ width: COLS[1] }} />
+                  <col style={{ width: COLS[2] }} />
+                  <col style={{ width: COLS[3] }} />
+                  <col style={{ width: COLS[4] }} />
+                </colgroup>
+
                 <thead>
                   <tr className="text-left border-b border-[var(--form-border)]">
-                    <th className="py-2 pr-4">Team</th>
-                    <th className="py-2 pr-4">Division</th>
-                    <th className="py-2 pr-4">Captain</th>
-                    <th className="py-2 pr-4">Teammate</th>
-                    <th className="py-2 pr-4">Confirmed Paid</th>
+                    <th className="py-2 pr-4 pl-0">Team</th>
+                    <th className="py-2 pr-4 pl-0">Division</th>
+                    <th className="py-2 pr-4 pl-0">Captain</th>
+                    <th className="py-2 pr-4 pl-0">Teammate</th>
+                    <th className="py-2 pr-4 pl-0">Confirmed Paid</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {filtered.map((r) => {
                     const isOpenRow = !!expandedIds[r.id];
@@ -328,25 +333,21 @@ export default function AdminLeagueSignups({
                             r.league_details.start_time
                           )}`
                         : "(unknown)";
+
                     return (
                       <React.Fragment key={r.id}>
-                        {/* Summary row (click to expand) */}
+                        {/* Summary row */}
                         <tr
                           className="border-b border-[var(--form-border)] cursor-pointer hover:bg-white/5"
                           onClick={() =>
                             setExpandedIds((prev) => ({ ...prev, [r.id]: !prev[r.id] }))
                           }
                         >
-                          <td className="py-2 pr-4">{r.team_name}</td>
-                          <td className="py-2 pr-4">{division}</td>
-                          <td className="py-2 pr-4">{r.captain_name}</td>
-                          <td className="py-2 pr-4">{r.teammate_name ?? ""}</td>
-                          <td
-                            className="py-2 pr-4"
-                            onClick={(e) => {
-                              e.stopPropagation(); // don't toggle expand on checkbox click
-                            }}
-                          >
+                          <td className="py-2 pr-4 pl-0 text-left">{r.team_name}</td>
+                          <td className="py-2 pr-4 pl-0 text-left">{division}</td>
+                          <td className="py-2 pr-4 pl-0 text-left">{r.captain_name}</td>
+                          <td className="py-2 pr-4 pl-0 text-left">{r.teammate_name ?? ""}</td>
+                          <td className="py-2 pr-4 pl-0" onClick={(e) => e.stopPropagation()}>
                             <label className="inline-flex items-center gap-2">
                               <input
                                 type="checkbox"
@@ -362,78 +363,124 @@ export default function AdminLeagueSignups({
                         {/* Expanded details */}
                         {isOpenRow && (
                           <tr className="border-b border-[var(--form-border)]">
-                            <td colSpan={5} className="py-3 pr-4">
-                              {/* Captain row (4 columns) */}
-                              <div className="mb-4">
-                                <div className="grid md:grid-cols-4 gap-4">
-                                  <Detail label="Captain ADL Number" value={r.captain_adl_number} />
-                                  <Detail label="Captain Email" value={r.captain_email} />
-                                  <Detail label="Captain Phone" value={r.captain_phone_number} />
-                                  <Detail
-                                    label="Captain NDA Sanctioned"
-                                    value={r.captain_paid_nda ? "Yes" : "No"}
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Teammate row (4 columns) */}
-                              <div className="mb-4">
-                                <div className="grid md:grid-cols-4 gap-4">
-                                  <Detail label="Teammate ADL Number" value={r.teammate_adl_number ?? ""} />
-                                  <Detail label="Teammate Email" value={r.teammate_email ?? ""} />
-                                  <Detail label="Teammate Phone" value={r.teammate_phone_number ?? ""} />
-                                  <Detail
-                                    label="Teammate NDA Sanctioned"
-                                    value={
-                                      r.teammate_paid_nda == null
-                                        ? ""
-                                        : r.teammate_paid_nda
-                                        ? "Yes"
-                                        : "No"
-                                    }
-                                  />
-                                </div>
-                              </div>
-                              <div className="my-4 h-[1px] w-full bg-[var(--color2)] rounded" />
-
-                              {/* Other details (no division FK or signup id here) */}
-                              <div className="mb-2">
-                                <div className="grid md:grid-cols-4 gap-4">
-                                  <Detail label="Home Location 1" value={r.home_location_1} />
-                                  <Detail label="Home Location 2" value={r.home_location_2} />
-                                  <Detail label="Play Preference" value={r.play_preference} />
-                                  <Detail
-                                    label="Total Fees"
-                                    value={
-                                      typeof r.total_fees_due === "number"
-                                        ? r.total_fees_due.toLocaleString(undefined, {
-                                            style: "currency",
-                                            currency: "USD",
-                                          })
-                                        : String(r.total_fees_due)
-                                    }
-                                  />
-                                  <Detail label="Payment Method" value={r.payment_method} />
-                                  <Detail
-                                    label="Created Date/Time"
-                                    value={new Date(r.created_at).toLocaleString()}
-                                  />
-                                </div>
-                              </div>
-
-                              <div
-                                className="flex justify-end mt-3"
-                                onClick={(e) => e.stopPropagation()}
+                            <td colSpan={5} className="py-3 pr-4 pl-0">
+                              <table
+                                className="w-full table-fixed text-left"
+                                style={{ borderCollapse: "separate", borderSpacing: 0 }}
                               >
-                                <Button
-                                  className="w-auto px-3 py-1 text-sm bg-[var(--color5)] text-white flex items-center gap-2"
-                                  onClick={() => handleDelete(r.id)}
-                                  icon={<FaTrash />}
-                                  iconPosition="left"
-                                >
-                                  Delete
-                                </Button>
-                              </div>
+                                <colgroup>
+                                  <col style={{ width: COLS[0] }} />
+                                  <col style={{ width: COLS[1] }} />
+                                  <col style={{ width: COLS[2] }} />
+                                  <col style={{ width: COLS[3] }} />
+                                  <col style={{ width: COLS[4] }} />
+                                </colgroup>
+
+                                <tbody>
+                                  {/* Captain row */}
+                                  <tr>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail label="Captain ADL Number" value={r.captain_adl_number} />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail label="Captain Email" value={r.captain_email} />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail label="Captain Phone" value={r.captain_phone_number} />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail
+                                        label="Captain NDA Sanctioned"
+                                        value={r.captain_paid_nda ? "Yes" : "No"}
+                                      />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left" />
+                                  </tr>
+
+                                  {/* Teammate row */}
+                                  <tr>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail label="Teammate ADL Number" value={r.teammate_adl_number ?? ""} />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail label="Teammate Email" value={r.teammate_email ?? ""} />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail label="Teammate Phone" value={r.teammate_phone_number ?? ""} />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail
+                                        label="Teammate NDA Sanctioned"
+                                        value={
+                                          r.teammate_paid_nda == null ? "" : r.teammate_paid_nda ? "Yes" : "No"
+                                        }
+                                      />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left" />
+                                  </tr>
+
+                                  {/* Divider (not a border) */}
+                                  <tr>
+                                    <td colSpan={5} className="py-1 pl-0 pr-0">
+                                      <div className="my-3 h-px w-full bg-[var(--color2)]" />
+                                    </td>
+                                  </tr>
+
+                                  {/* Other details row 1 */}
+                                  <tr>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail label="Home Location 1" value={r.home_location_1} />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail label="Home Location 2" value={r.home_location_2} />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail label="Play Preference" value={r.play_preference} />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail
+                                        label="Total Fees"
+                                        value={
+                                          typeof r.total_fees_due === "number"
+                                            ? r.total_fees_due.toLocaleString(undefined, {
+                                                style: "currency",
+                                                currency: "USD",
+                                              })
+                                            : String(r.total_fees_due)
+                                        }
+                                      />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left" />
+                                  </tr>
+
+                                  {/* Other details row 2 + Delete */}
+                                  <tr>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail label="Payment Method" value={r.payment_method} />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left">
+                                      <Detail
+                                        label="Created Date/Time"
+                                        value={new Date(r.created_at).toLocaleString()}
+                                      />
+                                    </td>
+                                    <td className="py-2 pr-4 pl-0 text-left" />
+                                    <td className="py-2 pr-4 pl-0 text-left" />
+                                    <td className="py-2 pr-4 pl-0 align-bottom">
+                                      <div className="flex justify-end">
+                                        <Button
+                                          className="w-auto px-3 py-1 text-sm bg-[var(--color5)] text-white flex items-center gap-2"
+                                          onClick={() => handleDelete(r.id)}
+                                          icon={<FaTrash />}
+                                          iconPosition="left"
+                                        >
+                                          Delete
+                                        </Button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
                             </td>
                           </tr>
                         )}
@@ -452,7 +499,7 @@ export default function AdminLeagueSignups({
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div>
+    <div className="text-left">
       <div className="text-xs opacity-70 mb-1">{label}</div>
       <div className="text-sm break-words">{value || ""}</div>
     </div>
