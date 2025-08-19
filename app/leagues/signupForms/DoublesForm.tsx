@@ -28,6 +28,7 @@ interface Location {
   id: number;
   name: string;
   league: boolean;
+  league_note: string | null; // ← new
 }
 
 interface DoublesFormData {
@@ -102,11 +103,15 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
   const labelForLeague = (l: LeagueDetails) =>
     `${l.name} - ${l.cap_details} ${l.day_of_week} ${formatTime12h(l.start_time)}`;
 
+  // NEW: show league note next to location name in selects
+  const labelForLocation = (loc: Location) =>
+    loc.league_note ? `${loc.name} — ${loc.league_note}` : loc.name;
+
   useEffect(() => {
     const fetchLocations = async () => {
       const { data, error } = await supabase
         .from('locations')
-        .select('id, name, league')
+        .select('id, name, league, league_note') // ← added league_note
         .eq('league', true)
         .order('name', { ascending: true });
       if (error) console.error('Error fetching locations:', error);
@@ -419,7 +424,7 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
               <option value="">Select a location</option>
               {locations.map((location) => (
                 <option key={location.id} value={location.name}>
-                  {location.name}
+                  {labelForLocation(location)}
                 </option>
               ))}
             </select>
@@ -438,7 +443,7 @@ const DoublesForm: React.FC<DoublesFormProps> = ({ signup, leagueDetails, onSubm
                 .filter((location) => location.name !== formData.home_location_1)
                 .map((location) => (
                   <option key={location.id} value={location.name}>
-                    {location.name}
+                    {labelForLocation(location)}
                   </option>
                 ))}
             </select>

@@ -15,13 +15,12 @@ type Location = {
   is_new?: boolean;
   created_at?: string;
   league: boolean;
+  league_note?: string | null; // ← NEW
 };
 
 export default function AdminLocations() {
   const [locations, setLocations] = useState<Location[]>([]);
-  const [editedLocations, setEditedLocations] = useState<
-    Record<string, Location>
-  >({});
+  const [editedLocations, setEditedLocations] = useState<Record<string, Location>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -29,7 +28,7 @@ export default function AdminLocations() {
     const fetchLocations = async () => {
       const { data, error } = await supabase
         .from("locations")
-        .select("*")
+        .select("*") // includes league_note
         .order("created_at", { ascending: false });
 
       if (error) console.error("Failed to load locations:", error.message);
@@ -43,7 +42,7 @@ export default function AdminLocations() {
   const handleChange = (
     id: string,
     field: keyof Location,
-    value: string | number | boolean
+    value: string | number | boolean | null
   ) => {
     setEditedLocations((prev) => ({
       ...prev,
@@ -134,6 +133,7 @@ export default function AdminLocations() {
       map_embed_url: "",
       is_new: false,
       league: true,
+      league_note: "", // ← NEW default
     };
     setEditedLocations((prev) => ({
       ...prev,
@@ -202,9 +202,7 @@ export default function AdminLocations() {
                   <input
                     type="text"
                     value={edited.name}
-                    onChange={(e) =>
-                      handleChange(loc.id, "name", e.target.value)
-                    }
+                    onChange={(e) => handleChange(loc.id, "name", e.target.value)}
                     className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
                   />
                 </div>
@@ -216,9 +214,7 @@ export default function AdminLocations() {
                   <input
                     type="text"
                     value={edited.address}
-                    onChange={(e) =>
-                      handleChange(loc.id, "address", e.target.value)
-                    }
+                    onChange={(e) => handleChange(loc.id, "address", e.target.value)}
                     className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
                   />
                 </div>
@@ -230,9 +226,7 @@ export default function AdminLocations() {
                   <input
                     type="text"
                     value={edited.details ?? ""}
-                    onChange={(e) =>
-                      handleChange(loc.id, "details", e.target.value)
-                    }
+                    onChange={(e) => handleChange(loc.id, "details", e.target.value)}
                     className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
                   />
                 </div>
@@ -244,9 +238,7 @@ export default function AdminLocations() {
                   <input
                     type="text"
                     value={edited.map_embed_url ?? ""}
-                    onChange={(e) =>
-                      handleChange(loc.id, "map_embed_url", e.target.value)
-                    }
+                    onChange={(e) => handleChange(loc.id, "map_embed_url", e.target.value)}
                     className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
                   />
                 </div>
@@ -259,11 +251,7 @@ export default function AdminLocations() {
                     type="number"
                     value={edited.latitude ?? ""}
                     onChange={(e) =>
-                      handleChange(
-                        loc.id,
-                        "latitude",
-                        parseFloat(e.target.value)
-                      )
+                      handleChange(loc.id, "latitude", e.target.value === "" ? null : parseFloat(e.target.value))
                     }
                     className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
                   />
@@ -277,12 +265,22 @@ export default function AdminLocations() {
                     type="number"
                     value={edited.longitude ?? ""}
                     onChange={(e) =>
-                      handleChange(
-                        loc.id,
-                        "longitude",
-                        parseFloat(e.target.value)
-                      )
+                      handleChange(loc.id, "longitude", e.target.value === "" ? null : parseFloat(e.target.value))
                     }
+                    className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
+                  />
+                </div>
+
+                {/* NEW: League Note (shown to players in signup selects) */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm text-[var(--card-text)] mb-1">
+                    League Note (shown in signup dropdown)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Monday & Wednesday nights only"
+                    value={edited.league_note ?? ""}
+                    onChange={(e) => handleChange(loc.id, "league_note", e.target.value)}
                     className="w-full p-2 rounded-md border border-[var(--form-border)] bg-[var(--form-background)] text-[var(--select-text)] focus:outline-none"
                   />
                 </div>
@@ -291,16 +289,11 @@ export default function AdminLocations() {
                   <input
                     type="checkbox"
                     checked={edited.league}
-                    onChange={(e) =>
-                      handleChange(loc.id, "league", e.target.checked)
-                    }
+                    onChange={(e) => handleChange(loc.id, "league", e.target.checked)}
                     className="h-5 w-5 border-[var(--form-border)] accent-[var(--form-checkbox-checked)] focus:outline-none"
                     id={`league-${loc.id}`}
                   />
-                  <label
-                    htmlFor={`league-${loc.id}`}
-                    className="text-[var(--card-text)]"
-                  >
+                  <label htmlFor={`league-${loc.id}`} className="text-[var(--card-text)]">
                     League Location
                   </label>
                 </div>
@@ -309,16 +302,11 @@ export default function AdminLocations() {
                   <input
                     type="checkbox"
                     checked={edited.is_new ?? false}
-                    onChange={(e) =>
-                      handleChange(loc.id, "is_new", e.target.checked)
-                    }
+                    onChange={(e) => handleChange(loc.id, "is_new", e.target.checked)}
                     className="h-5 w-5 border-[var(--form-border)] accent-[var(--form-checkbox-checked)] focus:outline-none"
                     id={`is_new-${loc.id}`}
                   />
-                  <label
-                    htmlFor={`is_new-${loc.id}`}
-                    className="text-[var(--card-text)]"
-                  >
+                  <label htmlFor={`is_new-${loc.id}`} className="text-[var(--card-text)]">
                     Mark as New
                   </label>
                 </div>
